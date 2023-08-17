@@ -28,6 +28,19 @@ jobs:
       - name: terraform init
         run: nix develop -c terraform init
 
+      - name: terraform validate
+        run: nix develop -c terraform validate
+
+      - name: terraform fmt
+        run: nix develop -c terraform fmt -check
+
+      - name: terraform plan buckets
+        run : nix develop -c terraform plan -out=buckets.plan  -target aws_s3_bucket.terraform -target aws_s3_bucket.cache
+
+      - name: terraform apply buckets
+        run: nix develop -c terraform apply buckets.plan
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
       - name: terraform plan
         run: nix develop -c terraform plan -out=plan.out
 
