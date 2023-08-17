@@ -3,8 +3,14 @@ resource "aws_launch_template" "webserver_user_data_build" {
   image_id      = local.nixos_ami
   instance_type = local.instance_type
   key_name      = aws_key_pair.admin.key_name
+
   iam_instance_profile {
     name = aws_iam_instance_profile.webserver.name
+  }
+
+  metadata_options {
+    http_endpoint          = "enabled"
+    instance_metadata_tags = "enabled"
   }
 
   user_data = base64encode(file("config/webserver.nix"))
