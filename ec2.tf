@@ -14,7 +14,7 @@ resource "aws_launch_template" "nixos" {
   instance_type = local.instance_type
   key_name      = aws_key_pair.admin.key_name
 
-  user_data = base64encode(file("config/configuration.nix"))
+  user_data = base64encode(file("config/webserver.nix"))
 
   block_device_mappings {
     device_name = "/dev/xvda"
