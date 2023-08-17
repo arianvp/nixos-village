@@ -14,6 +14,18 @@ resource "aws_launch_template" "nixos" {
   instance_type = local.instance_type
   key_name      = aws_key_pair.admin.key_name
 
+  /*
+  Sets the user data to the nix config.
+
+  When the instance boots, it will take this config and nixos-rebuild switch into it.
+
+  Problems:
+  * Uses the nix-channel version of when the AMI was uploaded. This is never updated.
+  * You will miss any kernel updates as the AMI is never updated
+  * Building locally can use a lot of resources which makes this fail on smaller instances like t3.micro
+  * For example ssm-agent is not in cache for the AMI, so it will need to rebuild it from scratch.
+  * this takes like 10 minutes. So boot time is now 10 minutes! unacceptable.
+  */
   user_data = base64encode(file("config/webserver.nix"))
 
   block_device_mappings {
