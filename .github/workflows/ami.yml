@@ -1,0 +1,17 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cachix/install-nix-action@v22
+      - uses: aws-actions/configure-aws-credentials@v2.2.0
+        with:
+          aws-region: eu-central-1
+          role-to-assume: arn:aws:iam::686862074153:role/github-actions
+      - uses: actions/checkout@v2
+      - run: nix develop -c aws -- sts get-caller-identity
