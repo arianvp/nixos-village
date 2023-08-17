@@ -1,6 +1,7 @@
 locals {
   # https://nixos.org/download#nixos-amazon
   nixos_ami = "ami-0d6ee9d5e1c985df6"
+  instance_type = "t3.medium"
 }
 
 resource "aws_key_pair" "admin" {
@@ -10,7 +11,7 @@ resource "aws_key_pair" "admin" {
 
 resource "aws_launch_template" "nixos" {
   image_id      = local.nixos_ami
-  instance_type = "t3.micro"
+  instance_type = local.instance_type
   key_name      = aws_key_pair.admin.key_name
 
   user_data = base64encode(file("config/configuration.nix"))
