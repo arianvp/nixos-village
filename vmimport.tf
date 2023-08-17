@@ -36,8 +36,13 @@ data "aws_iam_policy_document" "vmimport" {
   }
 }
 
+resource "aws_iam_policy" "vmimport" {
+  name   = "vmimport"
+  policy = data.aws_iam_policy_document.vmimport.json
+}
+
 resource "aws_iam_role" "vmimport" {
   name                = "vmimport"
   assume_role_policy  = data.aws_iam_policy_document.assume_vmimport.json
-  managed_policy_arns = []
+  managed_policy_arns = [aws_iam_policy.vmimport.arn]
 }
