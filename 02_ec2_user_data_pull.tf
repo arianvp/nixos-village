@@ -41,6 +41,7 @@ resource "aws_launch_template" "webserver_user_data_pull" {
 
   user_data = base64encode(<<EOF
 #!/usr/bin/env bash
+set -e
 
 nix-store \
   --realise ${var.nix_closure} \
