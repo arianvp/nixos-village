@@ -42,7 +42,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
       - name: nix build 
-        run: nix build .#nixosConfigurations.webserver.config.system.build.toplevel
+        run: export TF_VAR_nix_closure=$(nix build .#nixosConfigurations.webserver.config.system.build.toplevel --print-out-paths)
 
       - name: Copy to cache
         run: |
@@ -50,7 +50,8 @@ jobs:
           nix copy --to 's3://nixos-village-cache20230817114020926200000001?region=eu-central-1&secret-key-file=cache.key' ./result
 
       - name: terraform plan
-        run: nix develop -c terraform plan -out=plan.out
+        run: |
+          nix develop -c terraform plan -out=plan.out
 
       - name: terraform apply
         run: nix develop -c terraform apply plan.out

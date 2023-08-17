@@ -10,9 +10,11 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 
 resource "aws_iam_role" "webserver" {
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  ]
+}
+
+resource "aws_iam_role_policy_attachment" "webserver" {
+  role       = aws_iam_role.webserver.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_instance_profile" "webserver" {

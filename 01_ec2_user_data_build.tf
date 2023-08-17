@@ -1,4 +1,5 @@
 resource "aws_launch_template" "webserver_user_data_build" {
+  name          = "webserver-user-data-build"
   image_id      = local.nixos_ami
   instance_type = local.instance_type
   key_name      = aws_key_pair.admin.key_name
@@ -33,7 +34,7 @@ resource "aws_autoscaling_group" "webserver_user_data_build" {
   vpc_zone_identifier = [data.aws_subnet.default.id]
 
   launch_template {
-    name    = aws_launch_template.webserver_user_data_build.name
+    id      = aws_launch_template.webserver_user_data_build.id
     version = aws_launch_template.webserver_user_data_build.latest_version
   }
 
