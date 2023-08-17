@@ -17,4 +17,16 @@ jobs:
           aws-region: eu-central-1
           role-to-assume: arn:aws:iam::686862074153:role/github-actions
       - uses: actions/checkout@v2
-      - run: nix develop -c aws -- sts get-caller-identity
+
+      - name: check if AssumeRoleWithWebIdentity is working
+        run: nix develop -c aws -- sts get-caller-identity
+
+      - name: terraform init
+        run: nix develop -c terraform -- init
+
+      - name: terraform plan
+        run: nix develop -c terraform -- plan -out=plan.out
+
+      - name: terraform apply
+        run: nix develop -c terraform -- apply plan.out
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
