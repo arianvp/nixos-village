@@ -47,7 +47,7 @@ jobs:
       - name: Copy to cache
         run: |
           echo ${{secrets.SIGNING_KEY}} > cache.key
-          nix copy --to 's3://nixos-village-cache20230817114020926200000001?region=eu-central-1&secret-key-file=cache.key' ./result
+          nix copy --to 's3://nixos-village-cache20230817114020926200000001?region=eu-central-1&secret-key=cache.key' ./result
 
       - name: terraform plan
         run: |
