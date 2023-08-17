@@ -1,4 +1,3 @@
-
 data "aws_iam_policy_document" "ec2_assume_role" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -10,7 +9,7 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 }
 
 resource "aws_iam_role" "webserver" {
-  assume_role_policy  = data.aws_iam_policy_document.ec2_assume_role.json
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   ]

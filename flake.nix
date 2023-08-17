@@ -1,7 +1,10 @@
 {
   description = "NixOS Village AWS cloud";
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
-  inputs.nixos-generators.url = "github:nix-community/nixos-generators";
+  inputs.nixos-generators = {
+    url = "github:nix-community/nixos-generators";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
 
   outputs = { self, nixpkgs, nixos-generators }: {
     devShells.x86_64-linux.default = with nixpkgs.legacyPackages.x86_64-linux; mkShell {
