@@ -33,6 +33,7 @@ data "aws_iam_policy_document" "github_actions" {
 }
 
 resource "aws_iam_role" "github_actions" {
+  name                = "github-actions"
   assume_role_policy  = data.aws_iam_policy_document.github_actions.json
   managed_policy_arns = []
 }
