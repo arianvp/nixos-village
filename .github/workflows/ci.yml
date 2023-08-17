@@ -22,11 +22,11 @@ jobs:
         run: nix develop -c aws -- sts get-caller-identity
 
       - name: terraform init
-        run: nix develop -c terraform -- init
+        run: nix develop -c terraform init
 
       - name: terraform plan
-        run: nix develop -c terraform -- plan -out=plan.out
+        run: nix develop -c terraform plan -out=plan.out
 
       - name: terraform apply
-        run: nix develop -c terraform -- apply plan.out
+        run: nix develop -c terraform apply plan.out
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
