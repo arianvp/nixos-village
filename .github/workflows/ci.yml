@@ -41,21 +41,13 @@ jobs:
         run: nix develop -c terraform apply buckets.plan
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
-      - name: nix build amazonImage
-        run: |
-          nix build .#hydraBuilds.amazonImage
-
-      - name: nix build .#nixosConfigurations.webserver.config.system.build.toplevel
+      - name: nix build 
         run: nix build .#nixosConfigurations.webserver.config.system.build.toplevel
 
       - name: Copy to cache
         run: |
           echo ${{secrets.SIGNING_KEY}} > cache.key
           nix copy --to 's3://nixos-village-cache20230817114020926200000001?region=eu-central-1&secret-key-file=cache.key' ./result
-
-      - name: nix build amazonImages.webserver
-        run: nix build .#hydraBuilds.amazonImages.webserver
-
 
       - name: terraform plan
         run: nix develop -c terraform plan -out=plan.out
