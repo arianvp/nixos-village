@@ -35,7 +35,7 @@ jobs:
         run: nix develop -c terraform fmt -check
 
       - name: terraform plan buckets
-        run : nix develop -c terraform plan -out=buckets.plan  -target aws_s3_bucket.terraform -target aws_s3_bucket.cache
+        run : TF_VAR_nix_closure=no nix develop -c terraform plan -out=buckets.plan  -target aws_s3_bucket.terraform -target aws_s3_bucket.cache
 
       - name: terraform apply buckets
         run: nix develop -c terraform apply buckets.plan
