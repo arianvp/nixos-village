@@ -33,7 +33,10 @@ resource "aws_launch_template" "webserver_user_data_pull" {
   user_data = base64encode(<<EOF
 #!/usr/bin/env bash
 
-nix-store --realise ${var.nix_closure} --extra-substituters s3://${aws_s3_bucket.cache.bucket}?region=${aws_s3_bucket.cache.region}
+nix-store \
+  --realise ${var.nix_closure} \
+  --extra-substituters s3://${aws_s3_bucket.cache.bucket}?region=${aws_s3_bucket.cache.region} \
+  --extra-trusted-public-keys ${file("cache.pub")}
 
 nix-env --set ${var.nix_closure} --profile /nix/var/nix/profiles/system
 
@@ -52,7 +55,8 @@ EOF
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "webserver-user-data-pull"
+      Name       = "webserver-user-data-pull"
+      NixClosure = var.nix_closure
     }
   }
 }
