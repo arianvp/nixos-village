@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "deploy" {
   }
   statement {
     actions   = ["autoscaling:CompleteLifecycleAction"]
-    resources = [aws_autoscaling_group.webserver_user_data_pull.arn]
+    resources = ["*"]
   }
 }
 
@@ -71,6 +71,31 @@ EOF
   }
 }
 
+resource "aws_lb" "web" {
+  name               = "web"
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = data.aws_subnets.default.ids
+}
+
+resource "aws_lb_listener" "web" {
+  load_balancer_arn = aws_lb.web.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web.arn
+  }
+}
+
+resource "aws_lb_target_group" "web" {
+  name     = "web"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = data.aws_vpc.default.id
+}
+
 resource "aws_autoscaling_group" "webserver_user_data_pull" {
   name = "webserver-user-data-pull"
 
@@ -78,7 +103,7 @@ resource "aws_autoscaling_group" "webserver_user_data_pull" {
   min_size         = 0
   desired_capacity = 3
 
-  vpc_zone_identifier = [data.aws_subnet.default.id]
+  vpc_zone_identifier = data.aws_subnets.default.ids
 
   launch_template {
     id      = aws_launch_template.webserver_user_data_pull.id
@@ -95,4 +120,11 @@ resource "aws_autoscaling_group" "webserver_user_data_pull" {
     name                 = "launching"
     lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
   }
+
+  traffic_source {
+    type       = "elbv2"
+    identifier = aws_lb_target_group.web.arn
+  }
+
+
 }
