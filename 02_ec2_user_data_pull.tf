@@ -27,7 +27,7 @@ resource "aws_iam_role_policy_attachment" "deploy" {
 resource "aws_launch_template" "webserver_user_data_pull" {
   name          = "webserver-user-data-pull"
   image_id      = local.nixos_ami
-  instance_type = "t3.nano"
+  instance_type = "t3.medium"
 
   iam_instance_profile {
     name = aws_iam_instance_profile.webserver.name
