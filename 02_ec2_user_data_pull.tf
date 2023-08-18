@@ -88,4 +88,9 @@ resource "aws_autoscaling_group" "webserver_user_data_pull" {
   instance_refresh {
     strategy = "Rolling"
   }
+
+  initial_lifecycle_hook {
+    name = "launching"
+    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+  }
 }
