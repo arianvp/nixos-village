@@ -1,4 +1,6 @@
-variable "nix_closure" {}
+variable "nix_closure" {
+  description = "Injected by CI"
+}
 
 data "aws_iam_policy_document" "deploy" {
   statement {
