@@ -18,7 +18,7 @@
 [00_ec2_push_build.tf](00_ec2_push_build.tf)
 
 ```bash
-nixos-rebuild switch --flake .#webserver --target-host root@$(terraform output ec2_push_build_public_ip)
+nixos-rebuild switch --flake .#webserver --target-host root@$(terraform output -raw webserver_push_build_public_ip)
 ```
 
 ### Problems

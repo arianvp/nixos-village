@@ -28,22 +28,16 @@ resource "aws_launch_template" "webserver_push_build" {
   }
 }
 
-resource "aws_autoscaling_group" "webserver_push_build" {
-  name = "webserver-push-build"
-
-  max_size         = 1
-  min_size         = 0
-  desired_capacity = 1
-
-  vpc_zone_identifier = [data.aws_subnet.default.id]
+resource "aws_instance" "webserver_push_build" {
+  tags = { Name = "webserver-push-build" }
 
   launch_template {
     id      = aws_launch_template.webserver_push_build.id
     version = aws_launch_template.webserver_push_build.latest_version
   }
 
-  instance_refresh {
-    strategy = "Rolling"
-  }
 }
 
+output "webserver_push_build_public_ip" {
+  value = aws_instance.webserver_push_build.public_ip
+}
