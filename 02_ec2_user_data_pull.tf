@@ -28,6 +28,7 @@ resource "aws_launch_template" "webserver_user_data_pull" {
   name          = "webserver-user-data-pull"
   image_id      = local.nixos_ami
   instance_type = "t3.medium"
+  key_name      = aws_key_pair.admin.key_name
 
   iam_instance_profile {
     name = aws_iam_instance_profile.webserver.name

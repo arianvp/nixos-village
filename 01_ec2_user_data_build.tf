@@ -2,6 +2,7 @@ resource "aws_launch_template" "webserver_user_data_build" {
   name          = "webserver-user-data-build"
   image_id      = local.nixos_ami
   instance_type = "t3.medium" # NOTE: need more RAM for nix-instantiate to not OOM
+  key_name      = aws_key_pair.admin.key_name
 
   iam_instance_profile {
     name = aws_iam_instance_profile.webserver.name
