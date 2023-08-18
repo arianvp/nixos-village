@@ -1,7 +1,7 @@
 resource "aws_launch_template" "webserver_push_build" {
   name          = "webserver-push-build"
   image_id      = local.nixos_ami
-  instance_type = local.instance_type
+  instance_type = "t3.nano"
   key_name      = aws_key_pair.admin.key_name
 
   iam_instance_profile {

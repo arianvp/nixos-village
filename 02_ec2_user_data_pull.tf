@@ -27,7 +27,7 @@ resource "aws_iam_role_policy_attachment" "deploy" {
 resource "aws_launch_template" "webserver_user_data_pull" {
   name          = "webserver-user-data-pull"
   image_id      = local.nixos_ami
-  instance_type = local.instance_type
+  instance_type = "t3.nano"
 
   iam_instance_profile {
     name = aws_iam_instance_profile.webserver.name
@@ -73,9 +73,9 @@ EOF
 resource "aws_autoscaling_group" "webserver_user_data_pull" {
   name = "webserver-user-data-pull"
 
-  max_size         = 1
+  max_size         = 3
   min_size         = 0
-  desired_capacity = 1
+  desired_capacity = 3
 
   vpc_zone_identifier = [data.aws_subnet.default.id]
 

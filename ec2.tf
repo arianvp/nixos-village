@@ -1,7 +1,6 @@
 locals {
   # https://nixos.org/download#nixos-amazon
   nixos_ami     = "ami-0d6ee9d5e1c985df6"
-  instance_type = "t3.medium"
 }
 
 resource "aws_key_pair" "admin" {
