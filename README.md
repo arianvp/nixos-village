@@ -8,6 +8,7 @@
 
 * [config/webserver.nix](config/webserver.nix) is a simple webserver config
 * We want to deploy a fleet of webservers to AWS with a loadbalancer in front
+* Use github actions + terraform for builds and deploys [iam_github_actions.tf](iam_github_actions.tf)
 * Machines should be hands-off (no manual maintenance)
 
 
