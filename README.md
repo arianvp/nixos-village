@@ -91,9 +91,12 @@ nixos-rebuild switch --flake .#webserver --target-host root@$(terraform output e
 
 ## Future work
 
+* Our official AMI sucks balls
 * The AMI on https//nixos.org doesn't get updated after initial release
   This means you don't get kernel updates without rebooting. Rebooting
   is problematic in an ASG.
+* no auto-login on console so hard to debug issues
+* Even our `nix-store --realise` uses too much RAM for `t3.nano` and locks up the machine
 * For now; build your own base images. But we should fix this upstream!!
 * AMI is legacy boot and not UEFI. We should fix this upstream!!
 * See if we can get `coldnsap` working for faster image uploads

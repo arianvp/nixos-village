@@ -9,19 +9,21 @@
   services.ssm-agent.package = pkgs.ssm-agent;
   services.nginx.enable = true;
 
+  # TODO: Move this to a module
+  # Signals to the ASG that the instance is ready to be used and can serve traffic.
   systemd.services.complete-lifecycle-action = {
     wantedBy = [ "multi-user.target" ];
     after = [ "nginx.service" ];
     path = [ pkgs.awscli2 pkgs.curl ];
     script = ''
       function get_target_state {
-        curl -s http://169.254.169.254/latest/meta-data/autoscaling/target-lifecycle-state
+        curl -sSf http://169.254.169.254/latest/meta-data/autoscaling/target-lifecycle-state
       }
 
       function complete_lifecycle_action {
-        instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-        group_name=$(curl -s http://169.254.169.254/latest/meta-data/tags/aws:autoscaling:groupName)
-        region=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+        instance_id=$(curl -sSf http://169.254.169.254/latest/meta-data/instance-id)
+        group_name=$(curl -sSf http://169.254.169.254/latest/meta-data/tags/instance/aws:autoscaling:groupName)
+        region=$(curl -sSf http://169.254.169.254/latest/meta-data/placement/region)
   
         aws autoscaling complete-lifecycle-action \
           --lifecycle-hook-name launching \
