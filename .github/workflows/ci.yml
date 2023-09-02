@@ -45,10 +45,7 @@ jobs:
         run: nix develop -c terraform plan -out=out.plan
         working-directory: deploy/terraform-state
 
-      - name: terraform apply terraform-state
-        run: nix develop -c terraform apply out.plan
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        working-directory: deploy/terraform-state
+      # TODO: Migrate state?
 
       - name: terraform init
         run: nix develop -c ./init.sh
