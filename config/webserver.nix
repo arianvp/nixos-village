@@ -11,14 +11,7 @@
 
   networking.firewall.allowedTCPPorts = [ 80 443 ];
 
-  # TODO: Move this to a module
-  # Signals to the ASG that the instance is ready to be used and can serve traffic.
-  systemd.services.complete-lifecycle-action = {
-    wantedBy = [ "multi-user.target" ];
-    after = [ "nginx.service" ];
-    path = [ pkgs.awscli2 pkgs.curl ];
-    script = builtins.readFile ./complete-lifecycle-action.sh;
-
-  };
   system.stateVersion = "23.05";
+
+
 }

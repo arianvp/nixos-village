@@ -4,3 +4,4 @@ terraform.tfstate*
 result
 cache.key
 plan.out
+.vscode
