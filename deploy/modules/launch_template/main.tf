@@ -1,12 +1,11 @@
-
 module "instance_profile_web" {
-  source              = "./modules/instance_profile"
-  name                = "web"
-  managed_policy_arns = [aws_iam_policy.pull_cache.arn]
+  source              = "../instance_profile"
+  name                = var.name
+  managed_policy_arns = var.managed_policy_arns
 }
 
-resource "aws_launch_template" "web" {
-  name          = "web"
+resource "aws_launch_template" "this" {
+  name          = var.name
   image_id      = var.image_id
   instance_type = var.instance_type
   # key_name      = aws_key_pair.admin.key_name
@@ -21,18 +20,16 @@ resource "aws_launch_template" "web" {
     instance_metadata_tags      = "enabled"
   }
 
-  # TODO: cache.pub
-
-  user_data = var.nix_closure == null ? null : base64encode(<<EOF
+  user_data = var.nix == null ? null : base64encode(<<EOF
 #!/usr/bin/env bash
 set -e
 
 nix-store \
-  --realise ${var.nix_closure} \
-  --extra-substituters s3://${aws_s3_bucket.cache.bucket}?region=${aws_s3_bucket.cache.region} \
-  --extra-trusted-public-keys ${file("cache.pub")}
+  --realise ${var.nix.closure} \
+  --extra-substituters ${var.nix.subsituter} \
+  --extra-trusted-public-keys ${var.nix.trusted_public_key}
 
-nix-env --set ${var.nix_closure} --profile /nix/var/nix/profiles/system
+nix-env --set ${var.nix.closure} --profile /nix/var/nix/profiles/system
 
 /nix/var/nix/profiles/system/bin/switch-to-configuration switch
 
@@ -46,4 +43,3 @@ EOF
     }
   }
 }
-
