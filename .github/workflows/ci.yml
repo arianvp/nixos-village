@@ -15,11 +15,15 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v2
 
+      - name: terraform init terraform-state
+        run: (cd terraform-state && nix develop -c terraform init )
+
       - name: get_deploy_role_arn
         id: get_deploy_role_arn
         run: |
           deploy_role_arn=$(cd terraform-state && nix develop -c terraform output -raw deploy_role_arn)
           echo "deploy_role_arn=$deploy_role_arn" >> $GITHUB_OUTPUT
+
       - uses: aws-actions/configure-aws-credentials@v2.2.0
         with:
           aws-region: eu-central-1
@@ -27,28 +31,32 @@ jobs:
 
       - name: check if AssumeRoleWithWebIdentity is working
         run: nix develop -c aws -- sts get-caller-identity
-      - name: terraform validate
-        run: nix develop -c terraform validate
-      - name: terraform fmt
-        run: nix develop -c terraform fmt -check
 
-      - name: terraform init terraform-state
-        run: (cd ./terraform-state && nix develop -c terraform init )
+      - name: terraform validate terraform-state
+        run: (cd terraform-state && nix develop -c terraform validate)
+
+      - name: terraform fmt
+        run: (cd terraform-state && nix develop -c terraform fmt -check)
+
       - name: terraform plan terraform-state
-        run : (cd ./terraform-state && nix develop -c terraform plan -out=out.plan )
-      - name: terraform apply buckets
-        run: (cd ./terraform-state && nix develop -c terraform apply out.plan) 
+        run : (cd terraform-state && nix develop -c terraform plan -out=out.plan )
+
+      - name: terraform appl  terraform-state
+        run: (cd terraform-state && nix develop -c terraform apply out.plan) 
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
       - name: terraform init
         run: nix develop -c ./init.sh
 
-        # echo ${{secrets.SIGNING_KEY}} > cache.key
-        # export TF_VAR_nix_closure=$(nix build .#nixosConfigurations.webserver.config.system.build.toplevel --print-out-paths)
-        # nix copy --to 's3://nixos-village-cache20230817114020926200000001?region=eu-central-1&secret-key=cache.key&compression=zstd&parallel-compression=true' $TF_VAR_nix_closure
+      - name: terraform validate
+        run: nix develop -c terraform validate
 
-      - name: nix build copy and plan
+      - name: terraform fmt
+        run: nix develop -c terraform fmt -check
+
+      - name: terraform plan
         run:  nix develop -c terraform plan -out=plan.out
+
       - name: terraform apply
         run: nix develop -c terraform apply plan.out
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
