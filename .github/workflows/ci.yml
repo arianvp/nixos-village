@@ -41,7 +41,7 @@ jobs:
       - name: terraform plan terraform-state
         run : (cd terraform-state && nix develop -c terraform plan -out=out.plan )
 
-      - name: terraform appl  terraform-state
+      - name: terraform apply terraform-state
         run: (cd terraform-state && nix develop -c terraform apply out.plan) 
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
