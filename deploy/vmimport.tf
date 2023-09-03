@@ -1,6 +1,9 @@
-resource "aws_s3_bucket" "vmimport" {
-  bucket_prefix = "vmimport"
-  force_destroy = true
+resource "aws_s3_bucket" "images" {
+  bucket_prefix = "nixos-village-images"
+}
+
+output "images_bucket" {
+  value = aws_s3_bucket.images.bucket
 }
 
 data "aws_iam_policy_document" "assume_vmimport" {
@@ -12,6 +15,7 @@ data "aws_iam_policy_document" "assume_vmimport" {
     }
   }
 }
+
 data "aws_iam_policy_document" "vmimport" {
   statement {
     effect = "Allow"
@@ -21,8 +25,8 @@ data "aws_iam_policy_document" "vmimport" {
       "s3:ListBucket"
     ]
     resources = [
-      "${aws_s3_bucket.vmimport.arn}",
-      "${aws_s3_bucket.vmimport.arn}/*"
+      "${aws_s3_bucket.images.arn}",
+      "${aws_s3_bucket.images.arn}/*"
     ]
   }
   statement {
@@ -46,4 +50,39 @@ resource "aws_iam_role" "vmimport" {
   name                = "vmimport"
   assume_role_policy  = data.aws_iam_policy_document.assume_vmimport.json
   managed_policy_arns = [aws_iam_policy.vmimport.arn]
+}
+
+
+locals {
+  image = "/nix/store/wmpnqy2msn8jagvhf1kk4b4jj2xyzaxv-nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux/nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux.vhd"
+  name  = basename(local.image)
+  id    = "s3://nixos-village-images20230903102903577700000001/nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux.vhd"
+}
+
+
+resource "aws_ebs_snapshot_import" "image" {
+  disk_container {
+    format = "VHD"
+    user_bucket {
+      s3_bucket = aws_s3_bucket.images.bucket
+      s3_key    = local.name
+    }
+  }
+  role_name = aws_iam_role.vmimport.name
+}
+
+resource "aws_ami" "image" {
+  name                = local.name
+  virtualization_type = "hvm"
+  architecture        = "arm64"
+  boot_mode           = "uefi"
+  imds_support        = "v2.0"
+  ena_support         = true
+  sriov_net_support   = "simple"
+  root_device_name    = "/dev/xvda"
+
+  ebs_block_device {
+    device_name = "/dev/xvda"
+    snapshot_id = aws_ebs_snapshot_import.image.id
+  }
 }

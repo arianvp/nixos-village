@@ -6,7 +6,7 @@ resource "aws_key_pair" "admin" {
 module "launch_template_web" {
   source        = "./modules/launch_template"
   name          = "web"
-  image_id      = var.image_id
+  image_id      = aws_ami.image.id
   instance_type = var.instance_type
   key_name      = aws_key_pair.admin.key_name
 }
