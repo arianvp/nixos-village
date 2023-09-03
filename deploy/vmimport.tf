@@ -53,6 +53,7 @@ resource "aws_iam_role" "vmimport" {
 }
 
 
+// https://hydra.nixos.org/job/nixos/unstable-small/nixos.amazonImage.aarch64-linux
 locals {
   image = "/nix/store/wmpnqy2msn8jagvhf1kk4b4jj2xyzaxv-nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux/nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux.vhd"
   name  = basename(local.image)
@@ -69,6 +70,10 @@ resource "aws_ebs_snapshot_import" "image" {
     }
   }
   role_name = aws_iam_role.vmimport.name
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_ami" "image" {
@@ -84,5 +89,9 @@ resource "aws_ami" "image" {
   ebs_block_device {
     device_name = "/dev/xvda"
     snapshot_id = aws_ebs_snapshot_import.image.id
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
