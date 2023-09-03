@@ -12,6 +12,8 @@ resource "aws_launch_template" "this" {
 
   iam_instance_profile { arn = module.instance_profile_web.arn }
 
+  key_name = var.key_name
+
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"

@@ -10,6 +10,11 @@ variable "instance_type" {
   type = string
 }
 
+variable "key_name" {
+  type    = string
+  default = null
+}
+
 variable "nix" {
   type = object({
     closure            = string
