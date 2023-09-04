@@ -61,6 +61,15 @@ locals {
   name  = basename(local.image)
 }
 
+resource "null_resource" "image" {
+  triggers = {
+    image = local.image
+  }
+  provisioner "local-exec" {
+    command = "nix-store --realise ${local.image}"
+  }
+}
+
 resource "aws_s3_object" "image" {
   bucket = aws_s3_bucket.images.bucket
   key    = local.name
