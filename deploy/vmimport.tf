@@ -1,5 +1,6 @@
 resource "aws_s3_bucket" "images" {
   bucket_prefix = "nixos-village-images"
+  force_destroy = true
 }
 
 output "images_bucket" {
@@ -53,27 +54,28 @@ resource "aws_iam_role" "vmimport" {
 }
 
 
-// https://hydra.nixos.org/job/nixos/unstable-small/nixos.amazonImage.aarch64-linux
+# From: https://hydra.nixos.org/job/nixos/unstable-small/nixos.amazonImage.aarch64-linux
+# TODO: automate this?
 locals {
   image = "/nix/store/wmpnqy2msn8jagvhf1kk4b4jj2xyzaxv-nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux/nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux.vhd"
   name  = basename(local.image)
-  id    = "s3://nixos-village-images20230903102903577700000001/nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux.vhd"
 }
 
+resource "aws_s3_object" "image" {
+  bucket = aws_s3_bucket.images.bucket
+  key    = local.name
+  source = local.image
+}
 
 resource "aws_ebs_snapshot_import" "image" {
   disk_container {
     format = "VHD"
     user_bucket {
       s3_bucket = aws_s3_bucket.images.bucket
-      s3_key    = local.name
+      s3_key    = aws_s3_object.image.key
     }
   }
   role_name = aws_iam_role.vmimport.name
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_ami" "image" {
@@ -89,9 +91,5 @@ resource "aws_ami" "image" {
   ebs_block_device {
     device_name = "/dev/xvda"
     snapshot_id = aws_ebs_snapshot_import.image.id
-  }
-
-  lifecycle {
-    prevent_destroy = true
   }
 }
