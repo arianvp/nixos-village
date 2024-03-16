@@ -12,16 +12,16 @@ jobs:
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: terraform init terraform-state
-        run: nix develop -c terraform init
+      - name: tofu init terraform-state
+        run: nix develop -c tofu init
         working-directory: deploy/terraform-state
 
       - name: get_deploy_role_arn
         id: get_deploy_role_arn
         run: |
-          deploy_role_arn=$(nix develop -c terraform output -raw deploy_role_arn)
+          deploy_role_arn=$(nix develop -c tofu output -raw deploy_role_arn)
           echo "deploy_role_arn=$deploy_role_arn" >> $GITHUB_OUTPUT
         working-directory: deploy/terraform-state
 
@@ -33,37 +33,37 @@ jobs:
       - name: check if AssumeRoleWithWebIdentity is working
         run: nix develop -c aws -- sts get-caller-identity
 
-      - name: terraform validate terraform-state
-        run: nix develop -c terraform validate
+      - name: tofu validate terraform-state
+        run: nix develop -c tofu validate
         working-directory: deploy/terraform-state
 
-      - name: terraform fmt terraform-state
-        run: nix develop -c terraform fmt -check
+      - name: tofu fmt terraform-state
+        run: nix develop -c tofu fmt -check
         working-directory: deploy/terraform-state
 
-      - name: terraform plan terraform-state
-        run: nix develop -c terraform plan -out=out.plan
+      - name: tofu plan terraform-state
+        run: nix develop -c tofu plan -out=out.plan
         working-directory: deploy/terraform-state
 
       # TODO: Migrate state?
 
-      - name: terraform init
+      - name: tofu init
         run: nix develop -c ./init.sh
         working-directory: deploy
 
-      - name: terraform validate
-        run: nix develop -c terraform validate
+      - name: tofu validate
+        run: nix develop -c tofu validate
         working-directory: deploy
 
-      - name: terraform fmt
-        run: nix develop -c terraform fmt -check
+      - name: tofu fmt
+        run: nix develop -c tofu fmt -check
         working-directory: deploy
 
-      - name: terraform plan
-        run:  nix develop -c terraform plan -out=plan.out
+      - name: tofu plan
+        run:  nix develop -c tofu plan -out=plan.out
         working-directory: deploy
 
-      - name: terraform apply
-        run: nix develop -c terraform apply plan.out
+      - name: tofu apply
+        run: nix develop -c tofu apply plan.out
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: deploy
