@@ -90,8 +90,8 @@ resource "aws_ebs_snapshot_import" "image" {
 resource "aws_ami" "image" {
   name                = local.name
   virtualization_type = "hvm"
-  architecture        = "arm64"
-  boot_mode           = "uefi"
+  architecture        = "x86_64"
+  boot_mode           = "legacy-bios"
   imds_support        = "v2.0"
   ena_support         = true
   sriov_net_support   = "simple"

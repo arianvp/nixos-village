@@ -15,15 +15,14 @@ variable "key_name" {
   default = null
 }
 
-variable "nix" {
-  type = object({
-    closure            = string
-    subsituter         = string
-    trusted_public_key = string
-  })
+variable "nix_store_path" {
+  type = string
   default = null
 }
 
+variable "nix_substituters" {
+  type = list(string)
+}
 
 variable "managed_policy_arns" {
   type    = set(string)

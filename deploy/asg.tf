@@ -4,11 +4,15 @@ resource "aws_key_pair" "admin" {
 }
 
 module "launch_template_web" {
-  source        = "./modules/launch_template"
-  name          = "web"
-  image_id      = aws_ami.image.id
-  instance_type = var.instance_type
-  key_name      = aws_key_pair.admin.key_name
+  source         = "./modules/launch_template"
+  name           = "web"
+  image_id       = aws_ami.image.id
+  instance_type  = var.instance_type
+  key_name       = aws_key_pair.admin.key_name
+  nix_store_path = var.nix_closure
+  nix_substituters = [
+    "s3://${aws_s3_bucket.cache.bucket}?region=${aws_s3_bucket.cache.region}"
+  ]
 }
 
 
@@ -26,15 +30,14 @@ resource "aws_autoscaling_group" "web" {
     version = module.launch_template_web.latest_version
   }
 
+  health_check_type         = "EC2"
+  health_check_grace_period = 300
+  default_instance_warmup   = 300
 
-
-  # default_instance_warmup = 0
-
-
-  /*initial_lifecycle_hook {
-    name                 = "launching"
-    lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
-  }*/
+  instance_maintenance_policy {
+    min_healthy_percentage = 100
+    max_healthy_percentage = 110
+  }
 
   traffic_source {
     type       = "elbv2"

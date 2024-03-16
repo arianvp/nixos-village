@@ -14,6 +14,3 @@ output "dynamodb_table" {
   value = aws_dynamodb_table.terraform.name
 }
 
-output "deploy_role_arn" {
-  value = aws_iam_role.deploy.arn
-}
