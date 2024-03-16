@@ -1,4 +1,4 @@
-resource "aws_lb" "web" {
+/*resource "aws_lb" "web" {
   name               = "web"
   internal           = false
   load_balancer_type = "application"
@@ -14,7 +14,7 @@ resource "aws_lb_listener" "web" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.web.arn
   }
-}
+}*/
 
 resource "aws_lb_target_group" "web" {
   name     = "web"

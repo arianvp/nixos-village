@@ -24,14 +24,21 @@ module "instance_profile_web" {
 }
 
 locals {
-  nix_substituter    = "s3://${aws_s3_bucket.cache.bucket}?region=${aws_s3_bucket.cache.region}"
-  nix_trusted_public_key = "nixos-21.11-1-427812963091"
+  nix_substituter        = "s3://${data.terraform_remote_state.bootstrap.outputs.cache_bucket}?region=${data.terraform_remote_state.bootstrap.outputs.cache_region}"
+  nix_trusted_public_key = file("../public.key")
+}
+
+data "terraform_remote_state" "bootstrap" {
+  backend = "local"
+  config = {
+    path = "./bootstrap/terraform.tfstate"
+  }
 }
 
 resource "aws_launch_template" "web" {
   name          = "web"
   image_id      = data.aws_ami.nixos.id
-  instance_type = "t2.micro"
+  instance_type = "t3.micro"
   key_name      = aws_key_pair.admin.key_name
 
   iam_instance_profile { arn = module.instance_profile_web.arn }
@@ -47,11 +54,11 @@ resource "aws_launch_template" "web" {
   user_data = base64encode(<<EOF
 #!/usr/bin/env bash
 set -e
-nix-store \
-  --realise '${var.nix_store_path}' \
+nix build '${var.nix_store_path}' \
+  --profile /nix/var/nix/profiles/system \
+  --experimental-features 'nix-command' \
   --extra-substituters '${local.nix_substituter}' \
-  --extra-trusted-public-keys '${local.nix_trusted_public_key}' \
-nix-env --set '${var.nix_store_path}' --profile /nix/var/nix/profiles/system
+  --extra-trusted-public-keys '${local.nix_trusted_public_key}'
 /nix/var/nix/profiles/system/bin/switch-to-configuration switch
 EOF
   )

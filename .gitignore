@@ -5,3 +5,4 @@ result
 cache.key
 plan.out
 .vscode
+*.key

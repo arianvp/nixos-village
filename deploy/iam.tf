@@ -1,11 +1,11 @@
 data "aws_iam_policy_document" "pull_cache" {
   statement {
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.cache.arn}/*"]
+    resources = ["${data.terraform_remote_state.bootstrap.outputs.cache_bucket_arn}/*"]
   }
   statement {
     actions   = ["s3:GetBucketLocation"]
-    resources = [aws_s3_bucket.cache.arn]
+    resources = [data.terraform_remote_state.bootstrap.outputs.cache_bucket_arn]
   }
 }
 

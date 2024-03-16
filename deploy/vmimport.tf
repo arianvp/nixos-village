@@ -14,6 +14,11 @@ data "aws_iam_policy_document" "assume_vmimport" {
       type        = "Service"
       identifiers = ["vmie.amazonaws.com"]
     }
+    condition {
+      test     = "StringEquals"
+      variable = "sts:ExternalId"
+      values   = ["vmimport"]
+    }
   }
 }
 
@@ -50,24 +55,24 @@ resource "aws_iam_policy" "vmimport" {
 resource "aws_iam_role" "vmimport" {
   name                = "vmimport"
   assume_role_policy  = data.aws_iam_policy_document.assume_vmimport.json
-  managed_policy_arns = [aws_iam_policy.vmimport.arn]
+  inline_policy {
+    name   = "vmimport"
+    policy = data.aws_iam_policy_document.vmimport.json
+  }
+}
+
+import {
+  to = aws_iam_role.vmimport
+  id = "vmimport"
 }
 
 
+/*
 # From: https://hydra.nixos.org/job/nixos/unstable-small/nixos.amazonImage.aarch64-linux
 # TODO: automate this?
 locals {
-  image = "/nix/store/wmpnqy2msn8jagvhf1kk4b4jj2xyzaxv-nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux/nixos-amazon-image-23.11pre521711.3f9e803102d4-aarch64-linux.vhd"
   name  = basename(local.image)
-}
-
-resource "null_resource" "image" {
-  triggers = {
-    image = local.image
-  }
-  provisioner "local-exec" {
-    command = "nix-store --realise ${local.image}"
-  }
+  image = "/nix/store/bvi0ylv3xgabwlk337bfykavnhrfxpzm-nixos-amazon-image-23.11.20240314.878ef7d-x86_64-linux/nixos-amazon-image-23.11.20240314.878ef7d-x86_64-linux.vhd"
 }
 
 resource "aws_s3_object" "image" {
@@ -101,4 +106,4 @@ resource "aws_ami" "image" {
     device_name = "/dev/xvda"
     snapshot_id = aws_ebs_snapshot_import.image.id
   }
-}
+}*/

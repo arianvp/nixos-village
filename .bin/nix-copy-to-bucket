@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+set -x
+cache_bucket=$(cd $PRJ_ROOT/deploy/bootstrap && tofu output -raw cache_bucket)
+cache_region=$(cd $PRJ_ROOT/deploy/bootstrap && tofu output -raw cache_region)
+nix copy --to "s3://$cache_bucket?region=$cache_region&secret-key=$PRJ_ROOT/secret.key" $@
+
