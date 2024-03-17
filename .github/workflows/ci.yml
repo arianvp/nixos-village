@@ -14,16 +14,16 @@ jobs:
       - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v4
 
-      - name: tofu init terraform-state
+      - name: tofu init bootstrap
         run: nix develop -c tofu init
-        working-directory: deploy/terraform-state
+        working-directory: deploy/bootstrap
 
       - name: get_deploy_role_arn
         id: get_deploy_role_arn
         run: |
           deploy_role_arn=$(nix develop -c tofu output -raw deploy_role_arn)
           echo "deploy_role_arn=$deploy_role_arn" >> $GITHUB_OUTPUT
-        working-directory: deploy/terraform-state
+        working-directory: deploy/bootstrap
 
       - uses: aws-actions/configure-aws-credentials@v2.2.0
         with:
@@ -33,17 +33,17 @@ jobs:
       - name: check if AssumeRoleWithWebIdentity is working
         run: nix develop -c aws -- sts get-caller-identity
 
-      - name: tofu validate terraform-state
+      - name: tofu validate bootstrap
         run: nix develop -c tofu validate
-        working-directory: deploy/terraform-state
+        working-directory: deploy/bootstrap
 
-      - name: tofu fmt terraform-state
+      - name: tofu fmt bootstrap
         run: nix develop -c tofu fmt -check
-        working-directory: deploy/terraform-state
+        working-directory: deploy/bootstrap
 
-      - name: tofu plan terraform-state
+      - name: tofu plan bootstrap
         run: nix develop -c tofu plan -out=out.plan
-        working-directory: deploy/terraform-state
+        working-directory: deploy/bootstrap
 
       # TODO: Migrate state?
 
