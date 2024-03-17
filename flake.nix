@@ -13,11 +13,11 @@
         awscli2
       ];
     };
-    nixosConfigurations.webserver = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.web = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
         nixos-generators.nixosModules.amazon
-        ./config/webserver.nix
+        ./config/web.nix
       ];
     };
 

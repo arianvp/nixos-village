@@ -22,17 +22,18 @@ module "instance_profile_web" {
   name                = "web"
   managed_policy_arns = [aws_iam_policy.pull_cache.arn]
 }
-
-locals {
-  nix_substituter        = "s3://${data.terraform_remote_state.bootstrap.outputs.cache_bucket}?region=${data.terraform_remote_state.bootstrap.outputs.cache_region}"
-  nix_trusted_public_key = file("../public.key")
-}
-
 data "terraform_remote_state" "bootstrap" {
   backend = "local"
   config = {
     path = "./bootstrap/terraform.tfstate"
   }
+}
+
+locals {
+  cache_bucket           = data.terraform_remote_state.bootstrap.outputs.cache_bucket
+  cache_region           = data.terraform_remote_state.bootstrap.outputs.cache_region
+  nix_substituter        = "s3://${local.cache_bucket}?region=${local.cache_region}"
+  nix_trusted_public_key = file("../public.key")
 }
 
 resource "aws_launch_template" "web" {
@@ -43,25 +44,22 @@ resource "aws_launch_template" "web" {
 
   iam_instance_profile { arn = module.instance_profile_web.arn }
 
-  metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_protocol_ipv6          = "enabled"
-    http_put_response_hop_limit = 2
-    instance_metadata_tags      = "enabled"
-  }
-
-  user_data = base64encode(<<EOF
-#!/usr/bin/env bash
-set -e
-nix build '${var.nix_store_path}' \
-  --profile /nix/var/nix/profiles/system \
-  --experimental-features 'nix-command' \
-  --extra-substituters '${local.nix_substituter}' \
-  --extra-trusted-public-keys '${local.nix_trusted_public_key}'
-/nix/var/nix/profiles/system/bin/switch-to-configuration switch
-EOF
+  user_data = base64encode(<<-EOF
+  #!/usr/bin/env bash
+  set -e
+  nix build '${var.nix_store_path}' \
+    --profile /nix/var/nix/profiles/system \
+    --experimental-features 'nix-command' \
+    --extra-substituters '${local.nix_substituter}' \
+    --extra-trusted-public-keys '${local.nix_trusted_public_key}'
+  /nix/var/nix/profiles/system/bin/switch-to-configuration switch
+  EOF
   )
+
+  network_interfaces {
+    ipv6_address_count  = 1
+    enable_primary_ipv6 = true
+  }
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -77,18 +75,25 @@ resource "aws_autoscaling_group" "web" {
 
   max_size         = 3
   min_size         = 0
-  desired_capacity = 1
 
-  vpc_zone_identifier = module.vpc.public_subnet_ids
+  vpc_zone_identifier = aws_subnet.public.*.id
 
   launch_template {
     id      = aws_launch_template.web.id
     version = aws_launch_template.web.latest_version
   }
 
-  health_check_type         = "EC2"
+  health_check_type = "ELB"
+
+  # These values should be as high as it takes for user-data script to complete.
+  # use systemd-analyze to measure the time
+  # Or you can set them to 0 if you have a lifecycle hook
+
+  # used by maintenance 
   health_check_grace_period = 300
-  default_instance_warmup   = 300
+
+  # Used by scaling policies and instance refresh
+  default_instance_warmup = 300
 
   instance_maintenance_policy {
     min_healthy_percentage = 100
@@ -97,12 +102,10 @@ resource "aws_autoscaling_group" "web" {
 
   traffic_source {
     type       = "elbv2"
-    identifier = aws_lb_target_group.web.arn
+    identifier = "arn:aws:elasticloadbalancing:eu-central-1:686862074153:targetgroup/web/099a97adf2234b0c"
   }
 
   instance_refresh {
     strategy = "Rolling"
   }
-
-
 }
