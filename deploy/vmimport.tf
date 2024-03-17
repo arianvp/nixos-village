@@ -1,4 +1,4 @@
-resource "aws_s3_bucket" "images" {
+/*resource "aws_s3_bucket" "images" {
   bucket_prefix = "nixos-village-images"
   force_destroy = true
 }
@@ -59,12 +59,8 @@ resource "aws_iam_role" "vmimport" {
     name   = "vmimport"
     policy = data.aws_iam_policy_document.vmimport.json
   }
-}
+}*/
 
-import {
-  to = aws_iam_role.vmimport
-  id = "vmimport"
-}
 
 
 /*

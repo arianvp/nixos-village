@@ -112,11 +112,6 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[count.index].id
 }
 
-resource "aws_subnet" "public_dualstack" {
-  
-}
-
-
 resource "aws_subnet" "public" {
   count             = length(data.aws_availability_zones.zones.names)
   vpc_id            = aws_vpc.main.id

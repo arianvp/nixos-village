@@ -1,4 +1,4 @@
-resource "aws_lb" "web" {
+/*resource "aws_lb" "web" {
   name               = "web"
   internal           = false
   load_balancer_type = "application"
@@ -16,7 +16,7 @@ resource "aws_lb_listener" "web" {
     type             = "forward"
     target_group_arn = "arn:aws:elasticloadbalancing:eu-central-1:686862074153:targetgroup/web/099a97adf2234b0c"
   }
-}
+}*/
 
 # BUG IN TERRRAFORM 
 /*resource "aws_lb_target_group" "web" {
