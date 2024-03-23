@@ -1,6 +1,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws-native";
 import * as awsold from "@pulumi/aws";
+import { cidr } from "@pulumi/aws-native/cidr";
 
 const region = aws.getRegionOutput();
 const owner = aws.getAccountIdOutput();
@@ -208,15 +209,19 @@ async function main() {
         vpcId: vpc.id,
         groupDescription: "Allow ssh and ping",
         securityGroupIngress: [
-            { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIpv6: "0::/0" },
-            { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIpv6: "0::/0", }
+            { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIpv6: "0::/0", },
+            { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIpv6: "0::/0", },
+
+            { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIp: "0.0.0.0/0", },
+            { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIp: "0.0.0.0/0", }
+
         ],
     })
 
     const launchTemplate = new aws.ec2.LaunchTemplate("launchTemplate", {
         launchTemplateName: "launchTemplate",
         launchTemplateData: {
-            keyName: "nixos",
+            keyName: "arian@framework",
             imageId: "resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-arm64",
             // PAPERCUT: Ubuntu doesn't boot with IPv6 only subnet
             // imageId: "ami-074bcbbba36789937",
@@ -233,6 +238,12 @@ async function main() {
                 deviceIndex: 0,
                 primaryIpv6: true,
                 ipv6AddressCount: 1,
+                // PAPERCUT: Default ipv6 prefix size is not overridable and is hardcoded to /80 whilst /64
+                // would be more idiomatic for an instance
+                // ipv6PrefixCount: 1,
+                ipv6PrefixCount: 1,
+                // TODO: I am on public wifi that is IPv4 only and otherwise I can't SSH in huh
+                associatePublicIpAddress: true,
                 groups: [allowIngress.id],
             }],
         },
@@ -249,7 +260,8 @@ async function main() {
         },
         minSize: 0,
         maxSize: 3,
-        vpcZoneIdentifiers: ipv6PublicSubnets.map(subnet => subnet.subnet.id),
+        desiredCapacity: 0,
+        vpcZoneIdentifiers: dualStackPublicSubnets.map(subnet => subnet.subnet.id),
 
         instanceMaintenancePolicy: {
             minHealthyPercentage: 100,
