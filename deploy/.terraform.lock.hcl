@@ -17,20 +17,3 @@ provider "registry.opentofu.org/hashicorp/aws" {
     "zh:f222038c55866e5121d24290824f56c76afff2562bdd47624e42a44d1c7c2002",
   ]
 }
-
-provider "registry.opentofu.org/hashicorp/awscc" {
-  version = "0.71.0"
-  hashes = [
-    "h1:QT88NPhpN/OZZFB5cbj+1jueedULdcedd1FN7OlH5Qw=",
-    "zh:1559fe11ffec1d78c2993a1c2a41cece6d916d9d222e220c77bc12eb43b9cfdd",
-    "zh:1644f3af8ddbf38bcc3fec703a72c8446b4e4454763fc66eada43f1546bdb3ab",
-    "zh:2bd9a0a9b0c57a218b673fabaa6f3f888fa8a9d126e32da994e4225a670e26a7",
-    "zh:2e11206d99ca151b992d001cf53e148b2bb33e079c6263ad2530ee64424391a2",
-    "zh:3fb7f54adf4706915d94e93bdb6f4bc93381523101ac73c01ceb58da1f508ce9",
-    "zh:401d65ec52f59e0aebd82264221c49880aa9dff1cd724ac8da0df949990afed9",
-    "zh:731eb6a08ce39a220ad9124caf8d91b4c3f4b72efd47f72e70d9afd5d33ddaec",
-    "zh:a7363f4fe9c22026f88314d6c1c26f4b651169c595597e0341317db7ee1ab3d5",
-    "zh:a816f6ece8d17392af6091e1242c6780a740265ad3f84ec8f76139c80e41369a",
-    "zh:ec03d18f97345d055dfbb6672c3750e47328be373ccfc91a2ae4953ea8a9fd31",
-  ]
-}

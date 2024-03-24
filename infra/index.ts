@@ -2,10 +2,13 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws-native";
 import * as awsold from "@pulumi/aws";
 import { cidr } from "@pulumi/aws-native/cidr";
+import { DhcpOptions } from "@pulumi/aws-native/ec2";
+
+
+// PAPERCUT: EC2 API only dual-stack in eu-west-1
 
 const region = aws.getRegionOutput();
 const owner = aws.getAccountIdOutput();
-
 
 const ipam = new aws.ec2.Ipam("ipam", {
     operatingRegions: [{ regionName: region.region }],
@@ -101,11 +104,19 @@ const egressOnlyInternetGateway = new aws.ec2.EgressOnlyInternetGateway("egressO
     // tags: [{ key: "Name", value: "egressOnlyInternetGateway" }],
 })
 
-const privateRouteTable = new aws.ec2.RouteTable("privateRouteTable", {
-    vpcId: vpc.id,
+
+const tag = new awsold.ec2.Tag("tagEgressOnlyInternetGateway", {
+    resourceId: egressOnlyInternetGateway.id,
+    key: "Name",
+    value: "egressOnlyInternetGateway",
 })
 
-const egressOnlyInternetGatewayRoute = new aws.ec2.Route("egressOnlyInternetGatewayRoute", {
+const privateRouteTable = new aws.ec2.RouteTable("privateRouteTable", {
+    vpcId: vpc.id,
+    tags: [{ key: "Name", value: "private" }],
+})
+
+new aws.ec2.Route("egressOnlyInternetGatewayRoute", {
     routeTableId: privateRouteTable.id,
     destinationIpv6CidrBlock: "::/0",
     egressOnlyInternetGatewayId: egressOnlyInternetGateway.id,
@@ -122,13 +133,45 @@ const vpcGatewayAttachment = new aws.ec2.VpcGatewayAttachment("vpcGatewayAttachm
 
 const publicRouteTable = new aws.ec2.RouteTable("publicRouteTable", {
     vpcId: vpc.id,
+    tags: [{ key: "Name", value: "public" }],
 })
 
-const internetGatewayRoute = new aws.ec2.Route("publicRoute", {
+new aws.ec2.Route("publicRouteIpv4", {
     routeTableId: publicRouteTable.id,
     destinationCidrBlock: "0.0.0.0/0",
     gatewayId: internetGateway.id,
 }, { dependsOn: [vpcGatewayAttachment] })
+
+new aws.ec2.Route("publicRouteIpv6", {
+    routeTableId: publicRouteTable.id,
+    destinationIpv6CidrBlock: "::/0",
+    gatewayId: internetGateway.id,
+}, { dependsOn: [vpcGatewayAttachment] })
+
+const createNatGateway = (subnetId: pulumi.Input<string>) => {
+
+    const eip = new aws.ec2.Eip("natGatewayEip", {})
+
+    const natGateway = new aws.ec2.NatGateway("natGateway", {
+        subnetId: subnetId,
+        allocationId: eip.allocationId,
+        tags: [{ key: "Name", value: "natGateway" }],
+    })
+
+    new aws.ec2.Route("privateNatGatewayRoute", {
+        routeTableId: privateRouteTable.id,
+        destinationIpv6CidrBlock: "64:ff9b::/96",
+        natGatewayId: natGateway.id,
+    })
+
+    new aws.ec2.Route("publicNatGatewayRoute", {
+        routeTableId: publicRouteTable.id,
+        destinationIpv6CidrBlock: "64:ff9b::/96",
+        natGatewayId: natGateway.id,
+    })
+}
+
+
 
 async function main() {
 
@@ -141,6 +184,11 @@ async function main() {
             ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
             ipv6NetmaskLength: 60,
             ipv6Native: true,
+            enableDns64: true,
+            privateDnsNameOptionsOnLaunch: {
+                hostnameType: "resource-name",
+                enableResourceNameDnsAaaaRecord: true,
+            },
             tags: [
                 { key: "Name", value: `${az}-ipv6-private` },
                 { key: "AvailabilityZone", value: az },
@@ -162,8 +210,13 @@ async function main() {
             vpcId: vpc.id,
             availabilityZone: az,
             ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
-            ipv6NetmaskLength: 60,
+            ipv6NetmaskLength: 64,
             ipv6Native: true,
+            enableDns64: true,
+            privateDnsNameOptionsOnLaunch: {
+                hostnameType: "resource-name",
+                enableResourceNameDnsAaaaRecord: true,
+            },
             tags: [
                 { key: "Name", value: `${az}-ipv6-public` },
                 { key: "AvailabilityZone", value: az },
@@ -180,15 +233,19 @@ async function main() {
         return { subnet, SubnetRouteTableAssociation }
     })
 
-
     const dualStackPublicSubnets = azs.azs.map((az) => {
         const subnet = new aws.ec2.Subnet(`${az}-dual-stack-public`, {
             vpcId: vpc.id,
             availabilityZone: az,
             ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
-            ipv6NetmaskLength: 60,
+            ipv6NetmaskLength: 64,
             ipv4IpamPoolId: ipamSubnetPoolIpv4.id,
             ipv4NetmaskLength: 20,
+            privateDnsNameOptionsOnLaunch: {
+                hostnameType: "resource-name",
+                enableResourceNameDnsAaaaRecord: true,
+                enableResourceNameDnsARecord: true,
+            },
             tags: [
                 { key: "Name", value: `${az}-dual-stack-public` },
                 { key: "AvailabilityZone", value: az },
@@ -209,8 +266,8 @@ async function main() {
         vpcId: vpc.id,
         groupDescription: "Allow ssh and ping",
         securityGroupIngress: [
-            { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIpv6: "0::/0", },
-            { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIpv6: "0::/0", },
+            { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIpv6: "::/0", },
+            { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIpv6: "::/0", },
 
             { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIp: "0.0.0.0/0", },
             { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIp: "0.0.0.0/0", }
@@ -218,20 +275,94 @@ async function main() {
         ],
     })
 
-    const launchTemplate = new aws.ec2.LaunchTemplate("launchTemplate", {
-        launchTemplateName: "launchTemplate",
+    // PAPERCUT: Without a NAT Gateway, instances can not reach Amazon SSM 
+    createNatGateway(dualStackPublicSubnets[0].subnet.id)
+
+
+    const targetGroup = new aws.elasticloadbalancingv2.TargetGroup("targetGroup", {
+        targetType: "instance",
+        ipAddressType: "ipv6",
+        protocol: "HTTP",
+        port: 80,
+        vpcId: vpc.id,
+    })
+
+    const loadBalancerSecurityGroup = new aws.ec2.SecurityGroup("loadBalancerSecurityGroup", {
+        vpcId: vpc.id,
+        groupDescription: "Allow http",
+        securityGroupIngress: [
+            { ipProtocol: "tcp", fromPort: 80, toPort: 80, cidrIpv6: "::/0", },
+            { ipProtocol: "tcp", fromPort: 80, toPort: 80, cidrIp: "0.0.0.0/0", },
+            { ipProtocol: "tcp", fromPort: 443, toPort: 443, cidrIpv6: "::/0", },
+            { ipProtocol: "tcp", fromPort: 443, toPort: 443, cidrIp: "0.0.0.0/0" },
+        ],
+    })
+
+    /*const loadBalancer = new aws.elasticloadbalancingv2.LoadBalancer("loadBalancer", {
+        ipAddressType: "dualstack",
+        scheme: "internet-facing",
+        securityGroups: [allowIngress.id],
+        subnets: dualStackPublicSubnets.map(subnet => subnet.subnet.id),
+    })
+
+    new aws.elasticloadbalancingv2.Listener("httpListener", {
+        loadBalancerArn: loadBalancer.loadBalancerArn,
+        defaultActions: [{
+            type: "forward",
+            targetGroupArn: targetGroup.targetGroupArn,
+        }],
+        protocol: "HTTP",
+        port: 80,
+    })*/
+
+    const role = new aws.iam.Role("web", {
+        roleName: "web",
+        assumeRolePolicyDocument: JSON.stringify({
+            Version: "2012-10-17",
+            Statement: [{
+                Effect: "Allow",
+                Principal: {
+                    Service: "ec2.amazonaws.com",
+                },
+                Action: "sts:AssumeRole",
+            }],
+        }),
+        managedPolicyArns: ["arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"],
+    })
+
+    const instanceProfile = new aws.iam.InstanceProfile("web", {
+        instanceProfileName: "web",
+        roles: role.roleName.apply(roleName => [roleName!]),
+    })
+
+    const ami = aws.ssm.getParameterOutput({
+        name: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
+    })
+
+    const launchTemplate = new aws.ec2.LaunchTemplate("web", {
+        launchTemplateName: "web",
         launchTemplateData: {
             keyName: "arian@framework",
-            imageId: "resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-arm64",
+            imageId: ami.value?.apply(value => value!),
+            // PAPERCUT: 
+            // instance refresh: ValidationError: The launch template for the
+            // desired configuration isn't valid. A launch template that uses an
+            // SSM parameter instead of an AMI ID for ImageId is not supported
+            // when a desired configuration is specified. To use this launch
+            // template, you must add it to the Auto Scaling group before
+            // starting an instance refresh.
+            // imageId: "resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
             // PAPERCUT: Ubuntu doesn't boot with IPv6 only subnet
             // imageId: "ami-074bcbbba36789937",
             // PAPERCUT: NixOS doesn't come up with an IP!
             // imageId: "ami-00eeb8d7929eba78f",
             instanceType: "t4g.micro",
 
+            iamInstanceProfile: { arn: instanceProfile.arn },
+
             // PAPERCUT: Had to enable this to get access to IMDS in IPv6 only subnet
             metadataOptions: {
-                httpProtocolIpv6: "enabled",
+                // httpProtocolIpv6: "enabled",
             },
 
             networkInterfaces: [{
@@ -241,13 +372,13 @@ async function main() {
                 // PAPERCUT: Default ipv6 prefix size is not overridable and is hardcoded to /80 whilst /64
                 // would be more idiomatic for an instance
                 // ipv6PrefixCount: 1,
-                ipv6PrefixCount: 1,
+                // ipv6PrefixCount: 1,
                 // TODO: I am on public wifi that is IPv4 only and otherwise I can't SSH in huh
-                associatePublicIpAddress: true,
                 groups: [allowIngress.id],
             }],
         },
     })
+
 
     // PAPERCUT: EC2 Instance Connect is not supported for IPv6
     // PAPERCUT: AWS SSM Session Manager is not supported for IPv6
@@ -260,8 +391,8 @@ async function main() {
         },
         minSize: 0,
         maxSize: 3,
-        desiredCapacity: 0,
-        vpcZoneIdentifiers: dualStackPublicSubnets.map(subnet => subnet.subnet.id),
+        desiredCapacity: 1,
+        vpcZoneIdentifiers: ipv6PrivateSubnets.map(subnet => subnet.subnet.id),
 
         instanceMaintenancePolicy: {
             minHealthyPercentage: 100,
@@ -269,14 +400,19 @@ async function main() {
         },
 
         healthCheckType: "EC2",
-        healthCheckGracePeriod: 300,
-        defaultInstanceWarmup: 300,
+        healthCheckGracePeriod: 30,
+        defaultInstanceWarmup: 30,
 
-        instanceRefresh: { strategy: "Rolling" }
+        // trafficSources: [{ type: "elbv2", identifier: loadBalancer.loadBalancerArn }],
 
+        instanceRefresh: {
+            strategy: "Rolling",
+            preferences: {
+                autoRollback: true,
+            },
+        },
     })
 
 }
 
 main()
-

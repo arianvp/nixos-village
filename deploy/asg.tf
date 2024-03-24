@@ -17,11 +17,13 @@ data "aws_ami" "nixos" {
   }
 }
 
+
 module "instance_profile_web" {
   source              = "./modules/instance_profile"
   name                = "web"
-  managed_policy_arns = [aws_iam_policy.pull_cache.arn]
+  managed_policy_arns = []
 }
+
 data "terraform_remote_state" "bootstrap" {
   backend = "local"
   config = {
@@ -29,9 +31,34 @@ data "terraform_remote_state" "bootstrap" {
   }
 }
 
+resource "aws_s3_bucket" "cache" {
+  bucket_prefix = "cache"
+  force_destroy = true
+}
+
+resource "aws_iam_policy" "cache_read" {
+  name_prefix = "cache-read"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = "s3:GetObject",
+        Resource = "${aws_s3_bucket.cache.arn}/*",
+      },
+      # TODO: nix docs say this is needed. Press X to doubt
+      {
+        Effect   = "Allow",
+        Action   = "s3:GetBucketLocation",
+        Resource = "${aws_s3_bucket.cache.bucket}",
+      }
+    ],
+  })
+}
+
 locals {
-  cache_bucket           = data.terraform_remote_state.bootstrap.outputs.cache_bucket
-  cache_region           = data.terraform_remote_state.bootstrap.outputs.cache_region
+  cache_bucket           = aws_s3_bucket.cache.bucket
+  cache_region           = aws_s3_bucket.cache.region
   nix_substituter        = "s3://${local.cache_bucket}?region=${local.cache_region}"
   nix_trusted_public_key = file("../public.key")
 }
@@ -73,8 +100,8 @@ resource "aws_launch_template" "web" {
 resource "aws_autoscaling_group" "web" {
   name = "web"
 
-  max_size         = 3
-  min_size         = 0
+  max_size = 3
+  min_size = 0
 
   vpc_zone_identifier = aws_subnet.public.*.id
 

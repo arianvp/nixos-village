@@ -11,6 +11,8 @@
       packages = [
         opentofu
         awscli2
+        (pulumi.withPackages (p: [p.pulumi-language-nodejs]))
+        nodejs
       ];
     };
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
