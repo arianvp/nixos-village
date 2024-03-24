@@ -1,8 +1,8 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws-native";
 import * as awsold from "@pulumi/aws";
-import { cidr } from "@pulumi/aws-native/cidr";
-import { DhcpOptions } from "@pulumi/aws-native/ec2";
+
+import { newRole, newPolicy } from "./iam"
 
 
 // PAPERCUT: EC2 API only dual-stack in eu-west-1
@@ -276,7 +276,7 @@ async function main() {
     })
 
     // PAPERCUT: Without a NAT Gateway, instances can not reach Amazon SSM 
-    createNatGateway(dualStackPublicSubnets[0].subnet.id)
+    // createNatGateway(dualStackPublicSubnets[0].subnet.id)
 
 
     const targetGroup = new aws.elasticloadbalancingv2.TargetGroup("targetGroup", {
@@ -339,11 +339,14 @@ async function main() {
         name: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
     })
 
+    const imageId = ami.value?.apply(value => value!)
+    // const imageId = "ami-00eeb8d7929eba78f"
+
     const launchTemplate = new aws.ec2.LaunchTemplate("web", {
         launchTemplateName: "web",
         launchTemplateData: {
             keyName: "arian@framework",
-            imageId: ami.value?.apply(value => value!),
+            imageId,
             // PAPERCUT: 
             // instance refresh: ValidationError: The launch template for the
             // desired configuration isn't valid. A launch template that uses an
@@ -362,11 +365,11 @@ async function main() {
 
             // PAPERCUT: Had to enable this to get access to IMDS in IPv6 only subnet
             metadataOptions: {
-                // httpProtocolIpv6: "enabled",
             },
 
             networkInterfaces: [{
                 deviceIndex: 0,
+                // PAPERCUT: must set this or target group will not work
                 primaryIpv6: true,
                 ipv6AddressCount: 1,
                 // PAPERCUT: Default ipv6 prefix size is not overridable and is hardcoded to /80 whilst /64
@@ -391,8 +394,8 @@ async function main() {
         },
         minSize: 0,
         maxSize: 3,
-        desiredCapacity: 1,
-        vpcZoneIdentifiers: ipv6PrivateSubnets.map(subnet => subnet.subnet.id),
+        desiredCapacity: 0,
+        vpcZoneIdentifiers: ipv6PublicSubnets.map(subnet => subnet.subnet.id),
 
         instanceMaintenancePolicy: {
             minHealthyPercentage: 100,
@@ -408,11 +411,102 @@ async function main() {
         instanceRefresh: {
             strategy: "Rolling",
             preferences: {
+                // All configuration options derived from the desired
+                // configuration are not available for update while the instance
+                // refresh is active.
                 autoRollback: true,
             },
         },
     })
 
+
+    // PAPERCUT: VPC endpoint is not supported for IPv6 only subnets
+    /*const vpcEndpoint = new aws.ec2.VpcEndpoint("ssm", {
+        serviceName: "com.amazonaws.eu-central-1.ssm",
+        vpcId: vpc.id,
+        vpcEndpointType: "Interface",
+        securityGroupIds: [allowIngress.id],
+        subnetIds: ipv6PrivateSubnets.map(subnet => subnet.subnet.id),
+    })*/
+
 }
+
+
+const bucket = new aws.s3.Bucket("vmimport", {
+});
+
+const policy = new aws.iam.ManagedPolicy("vmimport", {
+    policyDocument: bucket.arn.apply(arn => JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+            Effect: "Allow",
+            Action: [
+                "s3:GetBucketLocation",
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:PutObject",
+            ],
+            Resource: [
+                arn,
+                `${arn}/*`,
+            ],
+        },
+        {
+            Effect: "Allow",
+            Action: [
+                "ec2:ModifySnapshotAttribute",
+                "ec2:CopySnapshot",
+                "ec2:RegisterImage",
+                "ec2:Describe*",
+            ],
+            Resource: ["*"],
+        }
+        ],
+    })),
+})
+
+const role = newRole("vmimport", {
+    roleName: "vmimport",
+    assumeRolePolicyDocument: {
+        Version: "2012-10-17",
+        Statement: {
+            Effect: "Allow",
+            Principal: {
+                Service: "vmie.amazonaws.com",
+            },
+            Action: "sts:AssumeRole",
+            Condition: {
+                StringEquals: {
+                    "sts:ExternalId": "vmimport",
+                },
+            },
+        },
+    },
+    managedPolicyArns: [policy.policyArn],
+});
+
+const uploadRole = newRole("vmimport-upload", {
+    roleName: "vmimport-upload",
+    assumeRolePolicyDocument: {
+        Version: "2012-10-17",
+        Statement: {
+            Effect: "Allow",
+            Principal: {
+                Federated: "token.actions.githubusercontent.com"
+            },
+            Action: "sts:AssumeRole",
+            Condition: {
+                StringEquals: {
+                    "token.actions.githubusercontent.com:sub": "repo:arianvp/nixos-village:environment:images"
+                },
+            },
+        }
+    },
+    managedPolicyArns: [policy.policyArn],
+});
+
+
+
+
 
 main()
