@@ -12,7 +12,7 @@ data "aws_iam_policy_document" "cache_read" {
   statement {
     effect    = ["Allow"]
     actions   = ["s3:GetBucketLocation"]
-    resources = ["${aws_s3_bucket.cache.bucket}"]
+    resources = [aws_s3_bucket.cache.bucket]
   }
 }
 

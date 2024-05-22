@@ -17,7 +17,9 @@
           awscli2
           (pulumi.withPackages (p: [ p.pulumi-language-nodejs ]))
           nodejs
-        ] ++ self.checks.${system}.pre-commit-check.enabledPackages;
+          tflint
+          actionlint
+        ];
         shellHook = self.checks.${system}.pre-commit-check.shellHook;
       };
     });
