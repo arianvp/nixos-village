@@ -7,14 +7,17 @@
   };
 
   outputs = { self, nixpkgs, nixos-generators }: {
-    devShells.x86_64-linux.default = with nixpkgs.legacyPackages.x86_64-linux; mkShell {
-      packages = [
-        opentofu
-        awscli2
-        (pulumi.withPackages (p: [p.pulumi-language-nodejs]))
-        nodejs
-      ];
-    };
+    lib.forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
+    devShells = self.lib.forAllSystems (system: {
+      default = with nixpkgs.legacyPackages.${system}; mkShell {
+        packages = [
+          opentofu
+          awscli2
+          (pulumi.withPackages (p: [ p.pulumi-language-nodejs ]))
+          nodejs
+        ];
+      };
+    });
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
