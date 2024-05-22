@@ -5,12 +5,12 @@ resource "aws_s3_bucket" "cache" {
 
 data "aws_iam_policy_document" "cache_read" {
   statement {
-    effect    = ["Allow"]
+    effect    = "Allow"
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.cache.arn}/*"]
   }
   statement {
-    effect    = ["Allow"]
+    effect    = "Allow"
     actions   = ["s3:GetBucketLocation"]
     resources = [aws_s3_bucket.cache.bucket]
   }
@@ -23,7 +23,7 @@ resource "aws_iam_policy" "cache_read" {
 
 data "aws_iam_policy_document" "cache_write" {
   statement {
-    effect    = ["Allow"]
+    effect    = "Allow"
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.cache.arn}/*"]
   }

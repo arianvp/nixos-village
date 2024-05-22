@@ -13,5 +13,23 @@ module "instance_profile_web" {
   ]
 }
 
+data "aws_ami" "nixos" {
+  most_recent = true
+  owners      = ["427812963091"]
+  filter {
+    name   = "name"
+    values = ["nixos/23.11*"]
+  }
+  filter {
+    name   = "architecture"
+    values = ["arm64"]
+  }
+}
 
 
+resource "aws_instance" "web" {
+  ami                  = data.aws_ami.nixos.id
+  instance_type        = "t4g.micro"
+  iam_instance_profile = module.instance_profile_web.arn
+  subnet_id            = module.vpc.public_subnet_ids[0]
+}
