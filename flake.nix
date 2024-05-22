@@ -5,8 +5,9 @@
     url = "github:nix-community/nixos-generators";
     inputs.nixpkgs.follows = "nixpkgs";
   };
+  inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
-  outputs = { self, nixpkgs, nixos-generators }: {
+  outputs = { self, nixpkgs, nixos-generators, pre-commit-hooks }: {
     lib.forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
     devShells = self.lib.forAllSystems (system: {
       default = with nixpkgs.legacyPackages.${system}; mkShell {
@@ -15,7 +16,7 @@
           awscli2
           (pulumi.withPackages (p: [ p.pulumi-language-nodejs ]))
           nodejs
-        ];
+        ] ++ self.checks.${system}.pre-commit-check.enabledPackages;
       };
     });
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
@@ -35,6 +36,16 @@
       nixpkgs.lib.mapAttrs
         (_: v: v.config.system.build.amazonImage)
         self.nixosConfigurations;
+
+    checks = self.lib.forAllSystems (system: {
+      pre-commit-check = pre-commit-hooks.lib.${system}.run {
+        src = ./.;
+        hooks = {
+          actionlint.enable = true;
+          tflint.enable = true;
+        };
+      };
+    });
 
   };
 }

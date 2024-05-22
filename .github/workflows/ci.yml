@@ -4,15 +4,14 @@ on:
       - main
   pull_request:
 jobs:
-  plan:
+  lint:
     permissions:
       id-token: write
       contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-region: eu-central-1
+      - name: actionslinst 
+        run: nix run nixpkgs#actionslint
+ 

@@ -19,9 +19,12 @@ data "aws_ami" "nixos" {
 
 
 module "instance_profile_web" {
-  source              = "./modules/instance_profile"
-  name                = "web"
-  managed_policy_arns = []
+  source = "./modules/instance_profile"
+  name   = "web"
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  ]
 }
 
 data "terraform_remote_state" "bootstrap" {
@@ -31,108 +34,4 @@ data "terraform_remote_state" "bootstrap" {
   }
 }
 
-resource "aws_s3_bucket" "cache" {
-  bucket_prefix = "cache"
-  force_destroy = true
-}
 
-resource "aws_iam_policy" "cache_read" {
-  name_prefix = "cache-read"
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = "s3:GetObject",
-        Resource = "${aws_s3_bucket.cache.arn}/*",
-      },
-      # TODO: nix docs say this is needed. Press X to doubt
-      {
-        Effect   = "Allow",
-        Action   = "s3:GetBucketLocation",
-        Resource = "${aws_s3_bucket.cache.bucket}",
-      }
-    ],
-  })
-}
-
-locals {
-  cache_bucket           = aws_s3_bucket.cache.bucket
-  cache_region           = aws_s3_bucket.cache.region
-  nix_substituter        = "s3://${local.cache_bucket}?region=${local.cache_region}"
-  nix_trusted_public_key = file("../public.key")
-}
-
-resource "aws_launch_template" "web" {
-  name          = "web"
-  image_id      = data.aws_ami.nixos.id
-  instance_type = "t3.micro"
-  key_name      = aws_key_pair.admin.key_name
-
-  iam_instance_profile { arn = module.instance_profile_web.arn }
-
-  user_data = base64encode(<<-EOF
-  #!/usr/bin/env bash
-  set -e
-  nix build '${var.nix_store_path}' \
-    --profile /nix/var/nix/profiles/system \
-    --experimental-features 'nix-command' \
-    --extra-substituters '${local.nix_substituter}' \
-    --extra-trusted-public-keys '${local.nix_trusted_public_key}'
-  /nix/var/nix/profiles/system/bin/switch-to-configuration switch
-  EOF
-  )
-
-  network_interfaces {
-    ipv6_address_count  = 1
-    enable_primary_ipv6 = true
-  }
-
-  block_device_mappings {
-    device_name = "/dev/xvda"
-    ebs {
-      volume_size = 4
-    }
-  }
-}
-
-
-resource "aws_autoscaling_group" "web" {
-  name = "web"
-
-  max_size = 3
-  min_size = 0
-
-  vpc_zone_identifier = aws_subnet.public.*.id
-
-  launch_template {
-    id      = aws_launch_template.web.id
-    version = aws_launch_template.web.latest_version
-  }
-
-  health_check_type = "ELB"
-
-  # These values should be as high as it takes for user-data script to complete.
-  # use systemd-analyze to measure the time
-  # Or you can set them to 0 if you have a lifecycle hook
-
-  # used by maintenance 
-  health_check_grace_period = 300
-
-  # Used by scaling policies and instance refresh
-  default_instance_warmup = 300
-
-  instance_maintenance_policy {
-    min_healthy_percentage = 100
-    max_healthy_percentage = 110
-  }
-
-  traffic_source {
-    type       = "elbv2"
-    identifier = "arn:aws:elasticloadbalancing:eu-central-1:686862074153:targetgroup/web/099a97adf2234b0c"
-  }
-
-  instance_refresh {
-    strategy = "Rolling"
-  }
-}
