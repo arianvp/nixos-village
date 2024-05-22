@@ -4,14 +4,11 @@ on:
       - main
   pull_request:
 jobs:
-  lint:
-    permissions:
-      id-token: write
-      contents: read
+  eval:
     runs-on: ubuntu-latest
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: actions/checkout@v4
-      - name: actionslinst 
-        run: nix run nixpkgs#actionslint
+      - run: nix flake check --keep-going
+
  

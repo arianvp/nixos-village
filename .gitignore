@@ -7,3 +7,4 @@ plan.out
 .vscode
 *.key
 .data
+.pre-commit-config.yaml

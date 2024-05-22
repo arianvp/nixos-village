@@ -8,7 +8,8 @@
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
   outputs = { self, nixpkgs, nixos-generators, pre-commit-hooks }: {
-    lib.forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
+    lib.supportedSystems = ["aarch64-darwin" "aarch64-linux" "x86_64-linux" ];
+    lib.forAllSystems = nixpkgs.lib.genAttrs self.lib.supportedSystems;
     devShells = self.lib.forAllSystems (system: {
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
@@ -17,6 +18,7 @@
           (pulumi.withPackages (p: [ p.pulumi-language-nodejs ]))
           nodejs
         ] ++ self.checks.${system}.pre-commit-check.enabledPackages;
+        shellHook = self.checks.${system}.pre-commit-check.shellHook;
       };
     });
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {

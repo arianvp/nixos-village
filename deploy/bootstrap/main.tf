@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "~> 5.41.0"
+    }
+  }
+}
+
 resource "aws_s3_bucket" "terraform" {
   bucket_prefix = "nixos-village-terraform"
   force_destroy = true
