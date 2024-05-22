@@ -4,11 +4,10 @@ on:
       - main
   pull_request:
 jobs:
-  eval:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: actions/checkout@v4
       - run: nix flake check --keep-going
-
  
