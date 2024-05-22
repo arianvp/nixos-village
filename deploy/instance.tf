@@ -4,7 +4,6 @@ resource "aws_key_pair" "admin" {
 }
 
 
-
 module "instance_profile_web" {
   source = "./modules/instance_profile"
   name   = "web"
