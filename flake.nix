@@ -1,6 +1,6 @@
 {
   description = "NixOS Village AWS cloud";
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
   inputs.nixos-generators = {
     url = "github:nix-community/nixos-generators";
     inputs.nixpkgs.follows = "nixpkgs";
@@ -15,7 +15,6 @@
         packages = [
           opentofu
           awscli2
-          (pulumi.withPackages (p: [ p.pulumi-language-nodejs ]))
           nodejs
           tflint
           actionlint
@@ -31,15 +30,7 @@
       modules = [ ./nix/configs/web.nix ];
     };
 
-    hydraJobs.amazonImage = nixos-generators.nixosGenerate {
-      system = "x86_64-linux";
-      format = "amazon";
-    };
 
-    hydraJobs.amazonImages =
-      nixpkgs.lib.mapAttrs
-        (_: v: v.config.system.build.amazonImage)
-        self.nixosConfigurations;
 
     checks = self.lib.forAllSystems (system: {
       pre-commit-check = pre-commit-hooks.lib.${system}.run {
