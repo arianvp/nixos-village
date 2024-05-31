@@ -6,6 +6,7 @@
 
 
   services.nginx = {
+    defaultListenAddresses = [ "0.0.0.0" ];
     enable = true;
   };
 
