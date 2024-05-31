@@ -23,12 +23,12 @@
         shellHook = self.checks.${system}.pre-commit-check.shellHook;
       };
     });
+
+    nixosModules.fluent-bit = ./nix/modules/fluent-bit.nix;
+
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      modules = [
-        nixos-generators.nixosModules.amazon
-        ./config/web.nix
-      ];
+      modules = [ ./nix/configs/web.nix ];
     };
 
     hydraJobs.amazonImage = nixos-generators.nixosGenerate {

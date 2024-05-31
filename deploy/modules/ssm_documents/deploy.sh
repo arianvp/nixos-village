@@ -3,22 +3,22 @@
 action='{{ action }}'
 installable='{{ installable }}'
 profile='{{ profile }}'
-substituter='{{ substituter }}'
-trustedPublicKey='{{ trustedPublicKey }}'
+substituters='{{ substituters }}'
+trustedPublicKeys='{{ trustedPublicKeys }}'
 
-if [ "$action" == "boot" ] && [ "$(readlink /run/current-system)" == "$nixStorePath" ]; then
+if [ "$action" == "boot" ] && [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$nixStorePath" ]; then
   echo "Already booted into the desired configuration"
   exit 0
 fi
 
-nixStorePath=$(nix build \
-  --extra-experimental-features 'nix-commmand flakes' \
-  --extra-trusted-public-keys "$trustedPublicKey" \
-  --extra-subsituters "$substituter" \
+nixStorePath=$(/run/current-system/sw/bin/nix build \
+  --extra-experimental-features 'nix-command flakes' \
+  --extra-trusted-public-keys "$trustedPublicKeys" \
+  --extra-substituters "$substituters" \
   --print-out-path \
   "$installable")
 
-sudo nix-env --profile "$profile" --set "$nixStorePath"
+/run/wrappers/bin/sudo nix-env --profile "$profile" --set "$nixStorePath"
 
 if [ "$action" == "switch" ]; then
   sudo /nix/var/nix/profiles/system/bin/switch-to-configuration switch

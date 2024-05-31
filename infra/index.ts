@@ -301,3 +301,5 @@ const web = (subnetId: Input<string>) => {
 
     return instance
 }
+
+web(dualStackSubnets[0].subnetId)
