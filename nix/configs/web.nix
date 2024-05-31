@@ -6,6 +6,7 @@
     (modulesPath + "/virtualisation/amazon-image.nix")
   ];
 
+
   services.nginx = {
     enable = true;
   };
