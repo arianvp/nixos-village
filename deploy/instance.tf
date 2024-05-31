@@ -38,7 +38,7 @@ module "ssm_documents" {
 
 resource "aws_instance" "web" {
   ami                  = data.aws_ami.nixos.id
-  instance_type        = "t4g.micro"
+  instance_type        = "t4g.medium"
   key_name             = aws_key_pair.utm.key_name
   iam_instance_profile = module.instance_profile_web.name
   tags = {

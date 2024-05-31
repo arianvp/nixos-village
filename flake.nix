@@ -27,7 +27,7 @@
     nixosModules.fluent-bit = ./nix/modules/fluent-bit.nix;
 
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
+      system = "aarch64-linux";
       modules = [ ./nix/configs/web.nix ];
     };
 
