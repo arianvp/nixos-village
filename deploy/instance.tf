@@ -45,4 +45,7 @@ resource "aws_instance" "web" {
   tags = {
     Name = "web"
   }
+  root_block_device {
+    volume_size = 20
+  }
 }
