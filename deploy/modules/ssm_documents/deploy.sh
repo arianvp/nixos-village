@@ -13,6 +13,7 @@ nixStorePath=$(/run/current-system/sw/bin/nix build \
   --extra-trusted-public-keys "$trustedPublicKeys" \
   --extra-substituters "$substituters" \
   --print-out-paths \
+  --refresh \
   "$installable")
 
 if [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$(/run/current-system/sw/bin/readlink ./result)" ]; then
