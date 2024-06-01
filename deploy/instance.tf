@@ -50,22 +50,16 @@ resource "aws_instance" "web" {
   }
 }
 
-locals {
-  flake = "github:arianvp/nixos-village#nixosConfigurations.web.config.system.build.toplevel"
-}
-
-
 resource "aws_ssm_association" "web" {
-  association_name = "web-deploy-hourly"
-  name = module.ssm_documents.nixos_deploy.name
+  association_name = "web-deploy"
+  name             = module.ssm_documents.nixos_deploy.name
   parameters = {
-    installable = local.flake
+    installable = "github:arianvp/nixos-village#nixosConfigurations.web.config.system.build.toplevel"
+    action      = "switch"
   }
   targets {
     key    = "tag:Name"
     values = ["web"]
   }
-
-  # roll out updates every hour
-  schedule_expression = "rate(1 hour)"
+  schedule_expression = "rate(30 minutes)"
 }

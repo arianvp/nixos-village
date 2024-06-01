@@ -1,7 +1,7 @@
 terraform.tfstate*
 .direnv
 .terraform
-result
+result*
 cache.key
 plan.out
 .vscode
