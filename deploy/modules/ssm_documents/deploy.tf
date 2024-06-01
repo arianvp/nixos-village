@@ -5,12 +5,6 @@ resource "aws_ssm_document" "nixos_rollback" {
     schemaVersion = "2.2"
     description   = "Rollback NixOS"
     parameters = {
-      action = {
-        type          = "String"
-        description = "Whether to switch or reboot to rollback."
-        allowedValues = ["switch", "reboot"]
-        default       = "switch"
-      }
       profile = {
         type        = "String"
         description = "The profile to use. By default uses the system profile"
