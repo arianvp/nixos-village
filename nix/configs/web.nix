@@ -6,11 +6,10 @@
 
 
   services.nginx = {
-    defaultListenAddresses = [ "0.0.0.0" ];
     enable = true;
+    virtualHosts.localhost = { };
   };
 
   networking.firewall.allowedTCPPorts = [ 80 443 ];
   system.stateVersion = "24.05";
-
 }
