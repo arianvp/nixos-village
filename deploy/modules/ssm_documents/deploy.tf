@@ -3,11 +3,11 @@ resource "aws_ssm_document" "nixos_rollback" {
   document_type = "Command"
   content = jsonencode({
     schemaVersion = "2.2"
-    description   = "Rollback NixOS the previous generation."
+    description   = "Rollback NixOS"
     parameters = {
-      description = "Whether to switch or reboot to rollback."
       action = {
         type          = "String"
+        description = "Whether to switch or reboot to rollback."
         allowedValues = ["switch", "reboot"]
         default       = "switch"
       }
