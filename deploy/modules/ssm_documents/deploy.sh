@@ -7,17 +7,18 @@ profile='{{ profile }}'
 substituters='{{ substituters }}'
 trustedPublicKeys='{{ trustedPublicKeys }}'
 
-if [ "$action" == "boot" ] && [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$nixStorePath" ]; then
-  echo "Already booted into the desired configuration"
-  exit 0
-fi
-
 nixStorePath=$(/run/current-system/sw/bin/nix build \
   --extra-experimental-features 'nix-command flakes' \
   --extra-trusted-public-keys "$trustedPublicKeys" \
   --extra-substituters "$substituters" \
   --print-out-paths \
   "$installable")
+
+if [ "$action" == "boot" ] && [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$nixStorePath" ]; then
+  echo "Already booted into the desired configuration"
+  exit 0
+fi
+
 
 /run/wrappers/bin/sudo /run/current-system/sw/bin/nix-env --profile "$profile" --set "$nixStorePath"
 
