@@ -3,7 +3,7 @@ resource "aws_ssm_document" "nixos_rollback" {
   document_type = "Command"
   content = jsonencode({
     schemaVersion = "2.2"
-    description   = "Rollback NixOS"
+    description   = "Rollback NixOS the previous generation."
     parameters = {
       description = "Whether to switch or reboot to rollback."
       action = {
@@ -29,6 +29,7 @@ resource "aws_ssm_document" "nixos_rollback" {
 
 resource "aws_ssm_document" "nixos_deploy" {
   name          = "NixOS-Deploy"
+  description   = "Deploy NixOS"
   document_type = "Command"
   content = jsonencode({
     schemaVersion = "2.2"
@@ -45,7 +46,7 @@ resource "aws_ssm_document" "nixos_deploy" {
         default = "/nix/var/nix/profiles/system"
       }
       installable = {
-        type = "String"
+        type        = "String"
         description = <<-EOF
         The NixOS configuration to deploy. Can either be a flake output
         attribute or a store path.  When a flake output attribute is used, the
@@ -61,9 +62,9 @@ resource "aws_ssm_document" "nixos_deploy" {
 
       }
       substituters = {
-        type    = "String"
+        type        = "String"
         description = "The substituters to use."
-        default = ""
+        default     = ""
       }
       trustedPublicKeys = {
         type    = "String"
