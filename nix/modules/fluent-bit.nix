@@ -22,7 +22,7 @@ in
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${cfg.package}/bin/fluent-bit --config_file=${settingsFormat.generate "config.yaml" cfg.settings}";
+      ExecStart = "${cfg.package}/bin/fluent-bit --config=${settingsFormat.generate "config.yaml" cfg.settings}";
       Restart = "always";
       StateDirectory = "fluent-bit";
       RuntimeDirectory = "fluent-bit";
