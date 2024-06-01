@@ -13,7 +13,7 @@
     after = [ "network.target" ];
     serviceConfig = {
       CacheDirectory = "web";
-      ExecStart = lib.getbin (pkgs.buildGoModule {
+      ExecStart = lib.getExe (pkgs.buildGoModule {
         name = "web";
         src = ./web;
         vendorHash = "sha256-CAr2aNXdt5lHmkidbPvjWZFNXChieeITXy3AMyMoSaI=";
