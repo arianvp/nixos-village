@@ -3,12 +3,19 @@
   imports = [
     (modulesPath + "/virtualisation/amazon-image.nix")
     ../modules/fluent-bit.nix
+    ../mixins/aws.nix
   ];
 
 
   services.getty.autologinUser = "root";
 
-  services.fluent-bit.enable = true;
+  services.fluent-bit = {
+    enable = true;
+    settings.pipeline.inputs = [{
+      name = "systemd";
+      db = "$${STATE_DIRECTORY}/systemd.db";
+    }];
+  };
 
   systemd.services.web = {
     description = "Web server";
