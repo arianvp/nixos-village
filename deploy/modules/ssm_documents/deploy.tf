@@ -29,7 +29,6 @@ resource "aws_ssm_document" "nixos_rollback" {
 
 resource "aws_ssm_document" "nixos_deploy" {
   name          = "NixOS-Deploy"
-  description   = "Deploy NixOS"
   document_type = "Command"
   content = jsonencode({
     schemaVersion = "2.2"
