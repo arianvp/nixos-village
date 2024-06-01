@@ -41,16 +41,12 @@ resource "aws_ssm_document" "nixos_deploy" {
       installable = {
         type        = "String"
         description = <<-EOF
-        The NixOS configuration to deploy. Can either be a flake output
-        attribute or a store path.  When a flake output attribute is used, the
-        flake is evaluated on the machine. Evaluation NixOS configurations takes
-        quite a bit of RAM so this might not work on small instances.
-
-        You can also provide a pre-built store path. In that case no evaluation
-        is done on the machine and the configuration is deployed as is. You
-        should probably set the `substituters` and `trustedPublicKeys`
-        parameters in that case so that your prebuilt store path can be fetched
-        from  the cache.
+        The configuration to deploy.
+        Either a nix flake attribute or a nix store path.
+        When a flake attribute is provided, the flake is evaluated on the
+        machine. This might run out of memory on small instances. 
+        If a store path is provided, the path is substituted
+        from a substituter.
         EOF
 
       }
@@ -60,8 +56,9 @@ resource "aws_ssm_document" "nixos_deploy" {
         default     = ""
       }
       trustedPublicKeys = {
-        type    = "String"
-        default = "The key with which to verify the substituters."
+        type        = "String"
+        description = "The key with which to verify the substituters."
+        default     = ""
       }
     }
     mainSteps = [
