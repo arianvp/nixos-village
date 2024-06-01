@@ -2,6 +2,8 @@
 let
   cfg = config.services.fluent-bit;
   settingsFormat = pkgs.formats.yaml { };
+  # TODO: Add check phase
+  configYaml = settingsFormat.generate "config.yaml" cfg.settings;
 in
 {
   options.services.fluent-bit = {
@@ -22,7 +24,7 @@ in
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${cfg.package}/bin/fluent-bit --config=${settingsFormat.generate "config.yaml" cfg.settings}";
+      ExecStart = "${cfg.package}/bin/fluent-bit --config=${configYaml}";
       Restart = "always";
       StateDirectory = "fluent-bit";
       RuntimeDirectory = "fluent-bit";
