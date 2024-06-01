@@ -10,7 +10,7 @@ in
     settings = lib.mkOption {
       type = lib.types.submodule {
         freeformType = settingsFormat.type;
-        options = {
+        options.pipeline = {
           inputs = lib.mkOption { type = lib.types.listOf settingsFormat.type; default = [ ]; };
           filters = lib.mkOption { type = lib.types.listOf settingsFormat.type; default = [ ]; };
           outputs = lib.mkOption { type = lib.types.listOf settingsFormat.type; default = [ ]; };
