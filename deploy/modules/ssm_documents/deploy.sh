@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+set -x
 
 action='{{ action }}'
 installable='{{ installable }}'
@@ -14,7 +15,7 @@ nixStorePath=$(/run/current-system/sw/bin/nix build \
   --print-out-paths \
   "$installable")
 
-if [ "$action" == "boot" ] && [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$nixStorePath" ]; then
+if [ "$action" == "boot" ] && [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$(/run/current-system/sw/bin/readlink ./result)" ]; then
   echo "Already booted into the desired configuration"
   exit 0
 fi
