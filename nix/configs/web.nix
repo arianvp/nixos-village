@@ -1,4 +1,4 @@
-{ pkgs, modulesPath, ... }:
+{ lib, pkgs, modulesPath, ... }:
 {
   imports = [
     (modulesPath + "/virtualisation/amazon-image.nix")
@@ -13,11 +13,11 @@
     after = [ "network.target" ];
     serviceConfig = {
       CacheDirectory = "web";
-      ExecStart = pkgs.buildGoModule {
+      ExecStart = lib.getbin (pkgs.buildGoModule {
         name = "web";
         src = ./web;
         vendorHash = "sha256-CAr2aNXdt5lHmkidbPvjWZFNXChieeITXy3AMyMoSaI=";
-      };
+      });
       Restart = "always";
     };
   };
