@@ -23,14 +23,17 @@
       };
     });
 
+
+    hydraJobs = {
+      web = self.nixosConfigurations.web.config.system.build.toplevel;
+    };
+
     nixosModules.fluent-bit = ./nix/modules/fluent-bit.nix;
 
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
       system = "aarch64-linux";
       modules = [ ./nix/configs/web.nix ];
     };
-
-
 
     checks = self.lib.forAllSystems (system: {
       pre-commit-check = pre-commit-hooks.lib.${system}.run {

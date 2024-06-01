@@ -70,3 +70,11 @@ resource "aws_ssm_document" "nixos_deploy" {
     ]
   })
 }
+
+output "nixos_deploy" {
+  value = aws_ssm_document.nixos_deploy
+}
+
+output "nixos_rollback" {
+  value = aws_ssm_document.nixos_rollback
+}
