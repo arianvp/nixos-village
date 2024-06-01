@@ -4,15 +4,26 @@
     (modulesPath + "/virtualisation/amazon-image.nix")
   ];
 
-  services.nginx = {
-    enable = true;
-    virtualHosts.localhost = { };
-  };
 
   services.getty.autologinUser = "root";
 
+  systemd.services.web = {
+    description = "Web server";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    serviceConfig = {
+      CacheDirectory = "web";
+      ExecStart = pkgs.buildGoModule {
+        name = "web";
+        src = ./web;
+        vendorHash = "sha256-CAr2aNXdt5lHmkidbPvjWZFNXChieeITXy3AMyMoSaI=";
+      };
+      Restart = "always";
+    };
+  };
+
   # services.journald.console = "/dev/ttyS0";
 
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
+  networking.firewall.allowedTCPPorts = [ 443 ];
   system.stateVersion = "24.05";
 }
