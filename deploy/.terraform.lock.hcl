@@ -2,9 +2,11 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.opentofu.org/hashicorp/aws" {
-  version = "5.41.0"
+  version     = "5.41.0"
+  constraints = "~> 5.41.0"
   hashes = [
-    "h1:e5W3Av/rB4TQ60lL+yKD8KUHUpOVm9c6isCHxv8/ggU=",
+    "h1:Fx+3haIzgp5zo3zVxJDMpTUQcZ8z0g8eQLFud0hA0xc=",
+    "h1:mkATW8WlbUXue9CHzZRPz43zSXM2vshWrbz8SKTVKSs=",
     "zh:28fda8bbfe6bdba53aa8a7ce1005e7d686bce1d604c6e0b58e32735162afc667",
     "zh:3961d01ce92bc6fcb1cc0e267d6fc4270adf010d93e7890460c566b2f5761670",
     "zh:85cf587abfdf6f306dc593232abb91cf5090296decaf6e84669dd92662f2f856",

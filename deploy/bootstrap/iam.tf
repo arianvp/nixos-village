@@ -5,7 +5,7 @@ locals {
 
 resource "aws_iam_openid_connect_provider" "github_actions" {
   url             = "https://${local.issuer}"
-  client_id_list  = ["${local.audience}"]
+  client_id_list  = [local.audience]
   thumbprint_list = ["ffffffffffffffffffffffffffffffffffffffff"]
 }
 

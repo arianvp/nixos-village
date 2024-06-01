@@ -1,8 +1,10 @@
+
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws-native";
 import * as awsold from "@pulumi/aws";
+import { cidrOutput } from "@pulumi/aws-native/cidr";
+import { Input } from "@pulumi/pulumi";
 
-import { newRole, newPolicy } from "./iam"
 
 
 // PAPERCUT: EC2 API only dual-stack in eu-west-1
@@ -12,29 +14,15 @@ const owner = aws.getAccountIdOutput();
 
 const ipam = new aws.ec2.Ipam("ipam", {
     operatingRegions: [{ regionName: region.region }],
-    tier: "advanced",
+    tier: "advanced"
 })
 
-const ipamPoolIpv4 = new aws.ec2.IpamPool("ipamPoolIpv4", {
-    ipamScopeId: ipam.privateDefaultScopeId,
-    addressFamily: "ipv4",
-    locale: region.region,
-})
-
-const ipamPoolCidrIpv4 = new aws.ec2.IpamPoolCidr("ipamPoolCidrIpv4", {
-    ipamPoolId: ipamPoolIpv4.id,
-    cidr: "10.0.0.0/8",
-})
 
 const vpc = new aws.ec2.Vpc("vpc", {
-    ipv4IpamPoolId: ipamPoolIpv4.id,
-    ipv4NetmaskLength: 16,
+    cidrBlock: "172.31.0.0/16",
     enableDnsHostnames: true,
     enableDnsSupport: true,
-}, {
-    dependsOn: [ipamPoolCidrIpv4],
-    // PAPERCUT https://github.com/pulumi/pulumi-aws-native/issues/1435
-    replaceOnChanges: ["*"],
+    tags: [{ key: "Name", value: "vpc" }],
 })
 
 const ipamPoolIpv6 = new aws.ec2.IpamPool("ipamPoolIpv6", {
@@ -57,6 +45,7 @@ const vpcIpv6CidrBlock = new aws.ec2.VpcCidrBlock("vpcCidrBlock", {
 
 }, { dependsOn: [ipamPoolCidrIpv6] })
 
+/* ipam costs money so puting this here for referencE*/
 const ipamSubnetPoolIpv6 = new aws.ec2.IpamPool("ipamSubnetPoolIpv6", {
     ipamScopeId: ipam.publicDefaultScopeId,
     addressFamily: "ipv6",
@@ -72,24 +61,6 @@ const ipamSubnetPoolIpv6 = new aws.ec2.IpamPool("ipamSubnetPoolIpv6", {
     }
 })
 
-const ipamSubnetPoolIpv4 = new aws.ec2.IpamPool("ipamSubnetPoolIpv4", {
-    ipamScopeId: ipam.privateDefaultScopeId,
-    addressFamily: "ipv4",
-    locale: region.region,
-    sourceIpamPoolId: ipamPoolIpv4.id,
-    sourceResource: {
-        resourceOwner: owner.accountId,
-        resourceRegion: region.region,
-        resourceId: vpc.id,
-        resourceType: "vpc",
-    }
-})
-
-const ipamSubnetPoolCidrIpv4 = new aws.ec2.IpamPoolCidr("ipamSubnetPoolCidrIpv4", {
-    ipamPoolId: ipamSubnetPoolIpv4.id,
-    cidr: vpc.cidrBlock.apply(cidr => cidr!),
-})
-
 
 const ipamSubnetPoolCidrIpv6 = new aws.ec2.IpamPoolCidr("ipamSubnetPoolCidrIpv6", {
     ipamPoolId: ipamSubnetPoolIpv6.id,
@@ -101,7 +72,6 @@ const ipamSubnetPoolCidrIpv6 = new aws.ec2.IpamPoolCidr("ipamSubnetPoolCidrIpv6"
 // https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/773
 const egressOnlyInternetGateway = new aws.ec2.EgressOnlyInternetGateway("egressOnlyInternetGateway", {
     vpcId: vpc.id,
-    // tags: [{ key: "Name", value: "egressOnlyInternetGateway" }],
 })
 
 
@@ -150,7 +120,9 @@ new aws.ec2.Route("publicRouteIpv6", {
 
 const createNatGateway = (subnetId: pulumi.Input<string>) => {
 
-    const eip = new aws.ec2.Eip("natGatewayEip", {})
+    const eip = new aws.ec2.Eip("natGatewayEip", {
+        tags: [{ key: "Name", value: "natGatewayEip" }],
+    })
 
     const natGateway = new aws.ec2.NatGateway("natGateway", {
         subnetId: subnetId,
@@ -171,342 +143,163 @@ const createNatGateway = (subnetId: pulumi.Input<string>) => {
     })
 }
 
+const azs = ["eu-central-1a", "eu-central-1b", "eu-central-1c"]
 
-
-async function main() {
-
-    const azs = await aws.getAzs({}, {});
-
-    const ipv6PrivateSubnets = azs.azs.map((az) => {
-        const subnet = new aws.ec2.Subnet(`${az}-ipv6-private`, {
-            vpcId: vpc.id,
-            availabilityZone: az,
-            ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
-            ipv6NetmaskLength: 60,
-            ipv6Native: true,
-            enableDns64: true,
-            privateDnsNameOptionsOnLaunch: {
-                hostnameType: "resource-name",
-                enableResourceNameDnsAaaaRecord: true,
-            },
-            tags: [
-                { key: "Name", value: `${az}-ipv6-private` },
-                { key: "AvailabilityZone", value: az },
-            ]
-        }, {
-            dependsOn: [ipamSubnetPoolCidrIpv6],
-            // PAPERCUT https://github.com/pulumi/pulumi-aws-native/issues/1435
-            replaceOnChanges: ["*"],
-        })
-        const SubnetRouteTableAssociation = new aws.ec2.SubnetRouteTableAssociation(`${az}-ipv6-private`, {
-            subnetId: subnet.id,
-            routeTableId: privateRouteTable.id,
-        })
-        return { subnet, SubnetRouteTableAssociation }
-    })
-
-    const ipv6PublicSubnets = azs.azs.map((az) => {
-        const subnet = new aws.ec2.Subnet(`${az}-ipv6-public`, {
-            vpcId: vpc.id,
-            availabilityZone: az,
-            ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
-            ipv6NetmaskLength: 64,
-            ipv6Native: true,
-            enableDns64: true,
-            privateDnsNameOptionsOnLaunch: {
-                hostnameType: "resource-name",
-                enableResourceNameDnsAaaaRecord: true,
-            },
-            tags: [
-                { key: "Name", value: `${az}-ipv6-public` },
-                { key: "AvailabilityZone", value: az },
-            ]
-        }, {
-            dependsOn: [ipamSubnetPoolCidrIpv6],
-            // PAPERCUT
-            replaceOnChanges: ["*"],
-        })
-        const SubnetRouteTableAssociation = new aws.ec2.SubnetRouteTableAssociation(`${az}-ipv6-public`, {
-            subnetId: subnet.id,
-            routeTableId: publicRouteTable.id,
-        })
-        return { subnet, SubnetRouteTableAssociation }
-    })
-
-    const dualStackPublicSubnets = azs.azs.map((az) => {
-        const subnet = new aws.ec2.Subnet(`${az}-dual-stack-public`, {
-            vpcId: vpc.id,
-            availabilityZone: az,
-            ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
-            ipv6NetmaskLength: 64,
-            ipv4IpamPoolId: ipamSubnetPoolIpv4.id,
-            ipv4NetmaskLength: 20,
-            privateDnsNameOptionsOnLaunch: {
-                hostnameType: "resource-name",
-                enableResourceNameDnsAaaaRecord: true,
-                enableResourceNameDnsARecord: true,
-            },
-            tags: [
-                { key: "Name", value: `${az}-dual-stack-public` },
-                { key: "AvailabilityZone", value: az },
-            ]
-        }, {
-            dependsOn: [ipamSubnetPoolCidrIpv6, ipamSubnetPoolCidrIpv4],
-            // PAPERCUT https://github.com/pulumi/pulumi-aws-native/issues/1435
-            replaceOnChanges: ["*"],
-        })
-        const SubnetRouteTableAssociation = new aws.ec2.SubnetRouteTableAssociation(`${az}-dual-stack-public`, {
-            subnetId: subnet.id,
-            routeTableId: publicRouteTable.id,
-        })
-        return { subnet, SubnetRouteTableAssociation }
-    })
-
-    const allowIngress = new aws.ec2.SecurityGroup("allowIngress", {
+const privateSubnets = azs.forEach((az, i) => {
+    const subnet = new aws.ec2.Subnet(`ipv6-private-${az}`, {
         vpcId: vpc.id,
-        groupDescription: "Allow ssh and ping",
-        securityGroupIngress: [
-            { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIpv6: "::/0", },
-            { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIpv6: "::/0", },
-
-            { ipProtocol: "icmp", fromPort: 8, toPort: 0, cidrIp: "0.0.0.0/0", },
-            { ipProtocol: "tcp", fromPort: 22, toPort: 22, cidrIp: "0.0.0.0/0", }
-
-        ],
+        assignIpv6AddressOnCreation: true,
+        ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
+        ipv6NetmaskLength: 60,
+        ipv6Native: true,
+        enableDns64: true,
+        privateDnsNameOptionsOnLaunch: {
+            hostnameType: "resource-name",
+            enableResourceNameDnsAaaaRecord: true,
+        },
+        tags: [{ key: "Name", value: `ipv6-private-${az}` }]
+    }, {
+        dependsOn: [ipamSubnetPoolCidrIpv6]
     })
+    return new aws.ec2.SubnetRouteTableAssociation(`ipv6-private-${az}`, { subnetId: subnet.id, routeTableId: privateRouteTable.id })
+})
 
-    // PAPERCUT: Without a NAT Gateway, instances can not reach Amazon SSM 
-    // createNatGateway(dualStackPublicSubnets[0].subnet.id)
-
-
-    const targetGroup = new aws.elasticloadbalancingv2.TargetGroup("targetGroup", {
-        targetType: "instance",
-        ipAddressType: "ipv6",
-        protocol: "HTTP",
-        port: 80,
+const publicSubnets = azs.forEach((az, i) => {
+    const subnet = new aws.ec2.Subnet(`ipv6-public-${az}`, {
         vpcId: vpc.id,
+        assignIpv6AddressOnCreation: true,
+        ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
+        ipv6NetmaskLength: 60,
+        ipv6Native: true,
+        enableDns64: true,
+        privateDnsNameOptionsOnLaunch: {
+            hostnameType: "resource-name",
+            enableResourceNameDnsAaaaRecord: true,
+        },
+        tags: [{ key: "Name", value: `ipv6-public-${az}` }]
+    }, {
+        dependsOn: [ipamSubnetPoolCidrIpv6]
     })
+    return new aws.ec2.SubnetRouteTableAssociation(`ipv6-public-${az}`, { subnetId: subnet.id, routeTableId: publicRouteTable.id })
+})
 
-    const loadBalancerSecurityGroup = new aws.ec2.SecurityGroup("loadBalancerSecurityGroup", {
+const subnets = [
+    "172.31.0.0/20",
+    "172.31.16.0/20",
+    "172.31.32.0/20"
+];
+
+const dualStackSubnets = azs.map((az, i) => {
+    const subnet = new aws.ec2.Subnet(`dual-stack-public-${az}`, {
         vpcId: vpc.id,
-        groupDescription: "Allow http",
-        securityGroupIngress: [
-            { ipProtocol: "tcp", fromPort: 80, toPort: 80, cidrIpv6: "::/0", },
-            { ipProtocol: "tcp", fromPort: 80, toPort: 80, cidrIp: "0.0.0.0/0", },
-            { ipProtocol: "tcp", fromPort: 443, toPort: 443, cidrIpv6: "::/0", },
-            { ipProtocol: "tcp", fromPort: 443, toPort: 443, cidrIp: "0.0.0.0/0" },
-        ],
+        ipv6IpamPoolId: ipamSubnetPoolIpv6.id,
+        ipv6NetmaskLength: 60,
+        cidrBlock: subnets[i],
+        assignIpv6AddressOnCreation: true,
+        mapPublicIpOnLaunch: true,
+        privateDnsNameOptionsOnLaunch: {
+            hostnameType: "resource-name",
+            enableResourceNameDnsAaaaRecord: true,
+            enableResourceNameDnsARecord: true,
+        },
+        tags: [{ key: "Name", value: `dual-stack-public-${az}` },]
     })
 
-    /*const loadBalancer = new aws.elasticloadbalancingv2.LoadBalancer("loadBalancer", {
-        ipAddressType: "dualstack",
-        scheme: "internet-facing",
-        securityGroups: [allowIngress.id],
-        subnets: dualStackPublicSubnets.map(subnet => subnet.subnet.id),
+    return new aws.ec2.SubnetRouteTableAssociation(`dual-stack-public-${az}`, {
+        subnetId: subnet.id,
+        routeTableId: publicRouteTable.id,
     })
+})
 
-    new aws.elasticloadbalancingv2.Listener("httpListener", {
-        loadBalancerArn: loadBalancer.loadBalancerArn,
-        defaultActions: [{
-            type: "forward",
-            targetGroupArn: targetGroup.targetGroupArn,
-        }],
-        protocol: "HTTP",
-        port: 80,
-    })*/
 
-    const role = new aws.iam.Role("web", {
-        roleName: "web",
+// PAPERCUT: Without a NAT Gateway, instances can not reach Amazon SSM 
+// TODO: NAT Gateway Costs Money
+// createNatGateway(dualStackPublicSubnets[0].subnet.id)
+
+
+const targetGroup = new aws.elasticloadbalancingv2.TargetGroup("targetGroup", {
+    targetType: "instance",
+    ipAddressType: "ipv6",
+    protocol: "HTTP",
+    port: 80,
+    vpcId: vpc.id,
+})
+
+// const instance = web(privateSubnets[0].subnetId)
+
+
+interface EC2RoleOptions {
+    name: string,
+    managedPolicyArns: pulumi.Input<pulumi.Input<string>[]>
+}
+const ec2Role = (opts: EC2RoleOptions) => {
+    const role = new aws.iam.Role(opts.name, {
+        roleName: opts.name,
         assumeRolePolicyDocument: JSON.stringify({
             Version: "2012-10-17",
             Statement: [{
                 Effect: "Allow",
-                Principal: {
-                    Service: "ec2.amazonaws.com",
-                },
+                Principal: { Service: "ec2.amazonaws.com" },
                 Action: "sts:AssumeRole",
             }],
         }),
-        managedPolicyArns: ["arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"],
+        managedPolicyArns: opts.managedPolicyArns
     })
 
-    const instanceProfile = new aws.iam.InstanceProfile("web", {
-        instanceProfileName: "web",
+    const instanceProfile = new aws.iam.InstanceProfile(opts.name, {
+        instanceProfileName: opts.name,
         roles: role.roleName.apply(roleName => [roleName!]),
     })
 
-    const ami = aws.ssm.getParameterOutput({
-        name: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
+    return { role, instanceProfile }
+}
+
+const nixosAmi = awsold.ec2.getAmiOutput({
+    filters: [
+        { name: "name", values: ["nixos/24.05beta*"] },
+        { name: "architecture", values: ["arm64"] }
+    ],
+    mostRecent: true,
+})
+
+const web = (subnetId: Input<string>) => {
+    const securityGroup = new aws.ec2.SecurityGroup("web", {
+        vpcId: vpc.id,
+        groupDescription: "web",
     })
 
-    const imageId = ami.value?.apply(value => value!)
-    // const imageId = "ami-00eeb8d7929eba78f"
+    const { instanceProfile } = ec2Role({
+        name: "web",
+        managedPolicyArns: [
+            "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+            "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+        ]
+    })
 
     const launchTemplate = new aws.ec2.LaunchTemplate("web", {
         launchTemplateName: "web",
         launchTemplateData: {
-            keyName: "arian@framework",
-            imageId,
-            // PAPERCUT: 
-            // instance refresh: ValidationError: The launch template for the
-            // desired configuration isn't valid. A launch template that uses an
-            // SSM parameter instead of an AMI ID for ImageId is not supported
-            // when a desired configuration is specified. To use this launch
-            // template, you must add it to the Auto Scaling group before
-            // starting an instance refresh.
-            // imageId: "resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
-            // PAPERCUT: Ubuntu doesn't boot with IPv6 only subnet
-            // imageId: "ami-074bcbbba36789937",
-            // PAPERCUT: NixOS doesn't come up with an IP!
-            // imageId: "ami-00eeb8d7929eba78f",
+            imageId: nixosAmi.imageId,
             instanceType: "t4g.micro",
-
             iamInstanceProfile: { arn: instanceProfile.arn },
-
-            // PAPERCUT: Had to enable this to get access to IMDS in IPv6 only subnet
-            metadataOptions: {
-            },
-
             networkInterfaces: [{
                 deviceIndex: 0,
-                // PAPERCUT: must set this or target group will not work
-                primaryIpv6: true,
+                subnetId,
                 ipv6AddressCount: 1,
-                // PAPERCUT: Default ipv6 prefix size is not overridable and is hardcoded to /80 whilst /64
-                // would be more idiomatic for an instance
-                // ipv6PrefixCount: 1,
-                // ipv6PrefixCount: 1,
-                // TODO: I am on public wifi that is IPv4 only and otherwise I can't SSH in huh
-                groups: [allowIngress.id],
-            }],
+                primaryIpv6: true,
+                groups: [securityGroup.id],
+            }]
         },
     })
 
-
-    // PAPERCUT: EC2 Instance Connect is not supported for IPv6
-    // PAPERCUT: AWS SSM Session Manager is not supported for IPv6
-    // So how do we connect to the instance? lol.
-
-    const asg = new awsold.autoscaling.Group("asg", {
+    const instance = new aws.ec2.Instance("web", {
         launchTemplate: {
-            id: launchTemplate.id,
+            launchTemplateName: launchTemplate.launchTemplateName.apply(name => name!),
             version: launchTemplate.latestVersionNumber,
         },
-        minSize: 0,
-        maxSize: 3,
-        desiredCapacity: 0,
-        vpcZoneIdentifiers: ipv6PublicSubnets.map(subnet => subnet.subnet.id),
-
-        instanceMaintenancePolicy: {
-            minHealthyPercentage: 100,
-            maxHealthyPercentage: 200,
-        },
-
-        healthCheckType: "EC2",
-        healthCheckGracePeriod: 30,
-        defaultInstanceWarmup: 30,
-
-        // trafficSources: [{ type: "elbv2", identifier: loadBalancer.loadBalancerArn }],
-
-        instanceRefresh: {
-            strategy: "Rolling",
-            preferences: {
-                // All configuration options derived from the desired
-                // configuration are not available for update while the instance
-                // refresh is active.
-                autoRollback: true,
-            },
-        },
     })
 
-
-    // PAPERCUT: VPC endpoint is not supported for IPv6 only subnets
-    /*const vpcEndpoint = new aws.ec2.VpcEndpoint("ssm", {
-        serviceName: "com.amazonaws.eu-central-1.ssm",
-        vpcId: vpc.id,
-        vpcEndpointType: "Interface",
-        securityGroupIds: [allowIngress.id],
-        subnetIds: ipv6PrivateSubnets.map(subnet => subnet.subnet.id),
-    })*/
-
+    return instance
 }
 
-
-const bucket = new aws.s3.Bucket("vmimport", {
-});
-
-const policy = new aws.iam.ManagedPolicy("vmimport", {
-    policyDocument: bucket.arn.apply(arn => JSON.stringify({
-        Version: "2012-10-17",
-        Statement: [{
-            Effect: "Allow",
-            Action: [
-                "s3:GetBucketLocation",
-                "s3:GetObject",
-                "s3:ListBucket",
-                "s3:PutObject",
-            ],
-            Resource: [
-                arn,
-                `${arn}/*`,
-            ],
-        },
-        {
-            Effect: "Allow",
-            Action: [
-                "ec2:ModifySnapshotAttribute",
-                "ec2:CopySnapshot",
-                "ec2:RegisterImage",
-                "ec2:Describe*",
-            ],
-            Resource: ["*"],
-        }
-        ],
-    })),
-})
-
-const role = newRole("vmimport", {
-    roleName: "vmimport",
-    assumeRolePolicyDocument: {
-        Version: "2012-10-17",
-        Statement: {
-            Effect: "Allow",
-            Principal: {
-                Service: "vmie.amazonaws.com",
-            },
-            Action: "sts:AssumeRole",
-            Condition: {
-                StringEquals: {
-                    "sts:ExternalId": "vmimport",
-                },
-            },
-        },
-    },
-    managedPolicyArns: [policy.policyArn],
-});
-
-const uploadRole = newRole("vmimport-upload", {
-    roleName: "vmimport-upload",
-    assumeRolePolicyDocument: {
-        Version: "2012-10-17",
-        Statement: {
-            Effect: "Allow",
-            Principal: {
-                Federated: "token.actions.githubusercontent.com"
-            },
-            Action: "sts:AssumeRole",
-            Condition: {
-                StringEquals: {
-                    "token.actions.githubusercontent.com:sub": "repo:arianvp/nixos-village:environment:images"
-                },
-            },
-        }
-    },
-    managedPolicyArns: [policy.policyArn],
-});
-
-
-
-
-
-main()
+web(dualStackSubnets[0].subnetId)
