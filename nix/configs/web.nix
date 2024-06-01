@@ -2,10 +2,13 @@
 {
   imports = [
     (modulesPath + "/virtualisation/amazon-image.nix")
+    ../modules/fluent-bit.nix
   ];
 
 
   services.getty.autologinUser = "root";
+
+  services.fluent-bit.enable = true;
 
   systemd.services.web = {
     description = "Web server";
