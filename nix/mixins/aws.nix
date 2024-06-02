@@ -4,7 +4,8 @@
       pipeline.filters = [{
         name = "aws";
         match = "*";
-        retry_interval_s = "60";
+        # Workaround for https://github.com/fluent/fluent-bit/issues/6918
+        retry_interval_s = "60"; 
       }];
       pipeline.outputs = [{
         name = "cloudwatch_logs";
