@@ -14,6 +14,7 @@
     settings.pipeline.inputs = [{
       name = "systemd";
       db = "\${STATE_DIRECTORY}/systemd.db";
+      tag = "host.*";
     }];
   };
 
