@@ -1,7 +1,11 @@
 {
   services.fluent-bit = {
     settings = {
-      pipeline.filters = [ { name = "aws"; match = "*"; } ];
+      pipeline.filters = [{
+        name = "aws";
+        match = "*";
+        retry_interval_s = "60";
+      }];
       pipeline.outputs = [{
         name = "cloudwatch_logs";
         match = "*";

@@ -22,6 +22,10 @@ in
   };
   config.systemd.services.fluent-bit = {
     wantedBy = [ "multi-user.target" ];
+
+    # why? Because otherwise it will give up fetching IMDS
+    # after = [ "network-online.target" ];
+    # wants = [ "network-online.target" ];
     serviceConfig = {
       Type = "simple";
       ExecStart = "${cfg.package}/bin/fluent-bit --config=${configYaml}";
