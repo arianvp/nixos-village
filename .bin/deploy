@@ -2,9 +2,9 @@
 set -e
 set -x
 
-cache_bucket=$(cd $PRJ_ROOT/deploy/bootstrap && tofu output -raw cache_bucket)
-cache_region=$(cd $PRJ_ROOT/deploy/bootstrap && tofu output -raw cache_region)
+cache_bucket=$(cd "$PRJ_ROOT"/deploy/bootstrap && tofu output -raw cache_bucket)
+cache_region=$(cd "$PRJ_ROOT"/deploy/bootstrap && tofu output -raw cache_region)
 store="s3://$cache_bucket?region=$cache_region&secret-key=$PRJ_ROOT/secret.key"
 nix copy --to "$store" "$1"
 nix_store_path=$(nix path-info "$1")
-(cd $PRJ_ROOT/deploy; tofu apply -var nix_store_path="$nix_store_path")
+(cd "$PRJ_ROOT"/deploy; tofu apply -var nix_store_path="$nix_store_path")
