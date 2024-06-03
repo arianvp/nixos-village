@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - id: build
         run: |
-          nix build .#nixosConfigurations.web.config.system.build.toplevel
+          nix build .#nixosConfigurations.web-push.config.system.build.toplevel
           out_path=$(readlink ./result)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
       - id: sign
@@ -25,7 +25,11 @@ jobs:
           aws-region: eu-central-1
       - id: copy
         run: |
-          nix copy --to "s3://${{ vars.CACHE_BUCKET }}" ${{ steps.build.outputs.out_path }}
+          nix copy --to "${{ vars.CACHE_BUCKET }}" ${{ steps.build.outputs.out_path }}
       - id: deploy
         run: |
           aws ssm run-command --document-name NixOS-deploy --targets 'Key=tag:Name,Values=web-push' --parameters "installable=${{ steps.copy.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},publicKeys=${{ vars.CACHE_PUBLIC_KEY }}"
+      - id: wait-for-deploy
+        run: |
+          echo "TODO: Implement"
+          echo "Deployed successfully"

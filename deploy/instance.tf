@@ -14,7 +14,7 @@ data "aws_ami" "nixos" {
   owners      = ["427812963091"]
   filter {
     name   = "name"
-    values = ["nixos/24.05beta*"]
+    values = ["nixos/24.05*"]
   }
   filter {
     name   = "architecture"
@@ -22,6 +22,18 @@ data "aws_ami" "nixos" {
   }
 }
 
+data "aws_ami" "nixos_x86_64" {
+  most_recent = true
+  owners      = ["427812963091"]
+  filter {
+    name   = "name"
+    values = ["nixos/24.05*"]
+  }
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+}
 
 module "instance_profile_web" {
   source = "./modules/instance_profile"
@@ -69,8 +81,8 @@ resource "aws_ssm_association" "web" {
 
 resource "aws_instance" "web_push" {
   count                = 2
-  ami                  = data.aws_ami.nixos.id
-  instance_type        = "t4g.micro"
+  ami                  = data.aws_ami.nixos_x86_64.id
+  instance_type        = "t3.micro"
   key_name             = aws_key_pair.utm.key_name
   iam_instance_profile = module.instance_profile_web.name
   tags = {

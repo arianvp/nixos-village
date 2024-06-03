@@ -33,6 +33,11 @@
       modules = [ ./nix/configs/web.nix ];
     };
 
+    nixosConfigurations.web-push = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [ ./nix/configs/web.nix ];
+    };
+
     checks = self.lib.forAllSystems (system: {
       pre-commit-check = pre-commit-hooks.lib.${system}.run {
         src = ./.;
