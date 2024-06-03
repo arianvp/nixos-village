@@ -5,7 +5,7 @@ set -x
 
 
 tofu init \
-    -backend-config="bucket=$(cd $PRJ_ROOT/deploy/bootstrap; tofu output -raw bucket)" \
-    -backend-config="region=$(cd $PRJ_ROOT/deploy/bootstrap; tofu output -raw region)" \
-    -backend-config="dynamodb_table=$(cd $PRJ_ROOT/deploy/bootstrap; tofu output -raw dynamodb_table)" \
+    -backend-config="bucket=$(cd "$PRJ_ROOT"/deploy/bootstrap; tofu output -raw bucket)" \
+    -backend-config="region=$(cd "$PRJ_ROOT"/deploy/bootstrap; tofu output -raw region)" \
+    -backend-config="dynamodb_table=$(cd "$PRJ_ROOT"/deploy/bootstrap; tofu output -raw dynamodb_table)" \
     "$@"

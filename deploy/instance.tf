@@ -14,7 +14,7 @@ data "aws_ami" "nixos" {
   owners      = ["427812963091"]
   filter {
     name   = "name"
-    values = ["nixos/24.05beta*"]
+    values = ["nixos/24.05*"]
   }
   filter {
     name   = "architecture"
@@ -22,13 +22,26 @@ data "aws_ami" "nixos" {
   }
 }
 
+data "aws_ami" "nixos_x86_64" {
+  most_recent = true
+  owners      = ["427812963091"]
+  filter {
+    name   = "name"
+    values = ["nixos/24.05*"]
+  }
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+}
 
 module "instance_profile_web" {
   source = "./modules/instance_profile"
   name   = "web"
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
+    aws_iam_policy.read_cache.arn
   ]
 }
 
@@ -62,4 +75,87 @@ resource "aws_ssm_association" "web" {
     values = ["web"]
   }
   schedule_expression = "rate(30 minutes)"
+}
+
+
+
+resource "aws_instance" "web_push" {
+  count                = 2
+  ami                  = data.aws_ami.nixos_x86_64.id
+  instance_type        = "t3.micro"
+  key_name             = aws_key_pair.utm.key_name
+  iam_instance_profile = module.instance_profile_web.name
+  tags = {
+    Name          = "web-push"
+    GithubSubject = "repo:arianvp/nixos-village"
+  }
+  root_block_device {
+    volume_size = 20
+  }
+}
+
+data "aws_iam_openid_connect_provider" "github_actions" {
+  url = "https://token.actions.githubusercontent.com"
+}
+
+data "aws_iam_policy_document" "assume_deploy" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    principals {
+      type        = "Federated"
+      identifiers = [data.aws_iam_openid_connect_provider.github_actions.arn]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:arianvp/nixos-village:*"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "deploy" {
+  statement {
+    effect    = "Allow"
+    actions   = ["ssm:SendCommand"]
+    resources = [module.ssm_documents.nixos_deploy.arn]
+  }
+  statement {
+    effect    = "Allow"
+    actions   = ["ssm:SendCommand"]
+    resources = ["arn:aws:ec2:*:*:instance/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "ssm:resourceTag/Name"
+      values   = ["web-push"]
+    }
+  }
+}
+
+resource "aws_iam_policy" "deploy" {
+  name   = "deploy"
+  policy = data.aws_iam_policy_document.deploy.json
+}
+
+resource "aws_iam_role" "deploy" {
+  name               = "deploy"
+  assume_role_policy = data.aws_iam_policy_document.assume_deploy.json
+  managed_policy_arns = [
+    aws_iam_policy.read_cache.arn,
+    aws_iam_policy.write_cache.arn,
+    aws_iam_policy.deploy.arn,
+  ]
+}
+
+resource "github_actions_variable" "deploy_role" {
+  repository    = "nixos-village"
+  variable_name = "DEPLOY_ROLE_ARN"
+  value         = aws_iam_role.deploy.arn
+}
+
+resource "github_actions_variable" "ssm_document_name" {
+  repository    = "nixos-village"
+  variable_name = "SSM_DOCUMENT_NAME"
+  value         = module.ssm_documents.nixos_deploy.name
 }

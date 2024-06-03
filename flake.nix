@@ -15,6 +15,7 @@
           tflint
           actionlint
           shellcheck
+          gh
         ];
         shellHook = self.checks.${system}.pre-commit-check.shellHook;
       };
@@ -29,6 +30,11 @@
 
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
       system = "aarch64-linux";
+      modules = [ ./nix/configs/web.nix ];
+    };
+
+    nixosConfigurations.web-push = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
       modules = [ ./nix/configs/web.nix ];
     };
 
