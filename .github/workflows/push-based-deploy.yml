@@ -23,7 +23,7 @@ jobs:
       - id: sign
         run: |
           echo "$CACHE_SECRET_KEY" > cache-secret-key
-          nix store sign --key-file cache-secret-key ${{ steps.build.outputs.out_path }}
+          nix store sign --recursive --key-file cache-secret-key ${{ steps.build.outputs.out_path }}
         env:
           CACHE_SECRET_KEY: ${{ secrets.CACHE_SECRET_KEY }}
       - id: copy
