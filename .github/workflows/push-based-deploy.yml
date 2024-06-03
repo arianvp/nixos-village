@@ -5,12 +5,19 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "${{ vars.DEPLOY_ROLE_ARN }}"
+          aws-region: eu-central-1
       - id: build
         run: |
-          nix build .#nixosConfigurations.web-push.config.system.build.toplevel
+          nix build .#nixosConfigurations.web-push.config.system.build.toplevel --extra-substituters '${{ vars.CACHE_BUCKET }}' --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}'
           out_path=$(readlink ./result)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
       - id: sign
@@ -19,10 +26,6 @@ jobs:
           nix store sign --key-file cache-secret-key ${{ steps.build.outputs.out_path }}
         env:
           CACHE_SECRET_KEY: ${{ secrets.CACHE_SECRET_KEY }}
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: "${{ vars.DEPLOY_ROLE_ARN }}"
-          aws-region: eu-central-1
       - id: copy
         run: |
           nix copy --to "${{ vars.CACHE_BUCKET }}" ${{ steps.build.outputs.out_path }}
