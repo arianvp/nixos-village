@@ -15,6 +15,7 @@ jobs:
         with:
           role-to-assume: "${{ vars.DEPLOY_ROLE_ARN }}"
           aws-region: eu-central-1
+      - run: nix store ping --store "${{ vars.CACHE_BUCKET }}"
       - id: build
         run: |
           nix build .#nixosConfigurations.web-push.config.system.build.toplevel --extra-substituters '${{ vars.CACHE_BUCKET }}' --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}'
