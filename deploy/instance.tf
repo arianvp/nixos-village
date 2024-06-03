@@ -117,10 +117,12 @@ data "aws_iam_policy_document" "assume_deploy" {
 
 data "aws_iam_policy_document" "deploy" {
   statement {
+    effect    = "Allow"
     actions   = ["ssm:SendCommand"]
     resources = [module.ssm_documents.nixos_deploy.arn]
   }
   statement {
+    effect    = "Allow"
     actions   = ["ssm:SendCommand"]
     resources = ["arn:aws:ec2:*:*:instance/*"]
     condition {
@@ -136,7 +138,6 @@ resource "aws_iam_policy" "deploy" {
   policy = data.aws_iam_policy_document.deploy.json
 }
 
-
 resource "aws_iam_role" "deploy" {
   name               = "deploy"
   assume_role_policy = data.aws_iam_policy_document.assume_deploy.json
@@ -151,4 +152,10 @@ resource "github_actions_variable" "deploy_role" {
   repository    = "nixos-village"
   variable_name = "DEPLOY_ROLE_ARN"
   value         = aws_iam_role.deploy.arn
+}
+
+resource "github_actions_variable" "ssm_document_name" {
+  repository    = "nixos-village"
+  variable_name = "SSM_DOCUMENT_NAME"
+  value         = module.ssm_documents.nixos_deploy.name
 }

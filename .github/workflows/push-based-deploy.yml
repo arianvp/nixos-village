@@ -41,9 +41,9 @@ jobs:
       - id: deploy
         run: |
           aws ssm send-command \
-            --document-name NixOS-deploy \
+            --document-name ${{ vars.SSM_DOCUMENT_NAME }} \
             --targets 'Key=tag:Name,Values=web-push' \
-            --parameters "installable=${{ steps.build.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},publicKeys=${{ vars.CACHE_PUBLIC_KEY }}"
+            --parameters "installable=${{ steps.build.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},trustedPublicKeys=${{ vars.CACHE_PUBLIC_KEY }}"
       - id: wait-for-deploy
         run: |
           echo "TODO: Implement"
