@@ -109,7 +109,7 @@ data "aws_iam_policy_document" "assume_deploy" {
     }
     condition {
       test     = "StringEquals"
-      variable = "${data.aws_iam_openid_connect_provider.github_actions.url}:sub"
+      variable = "token.actions.githubusercontent.com:sub"
       values   = ["repo:arianvp/nixos-village:*"]
     }
   }
