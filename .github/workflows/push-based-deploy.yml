@@ -12,9 +12,17 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
+        id: aws
         with:
           role-to-assume: "${{ vars.DEPLOY_ROLE_ARN }}"
           aws-region: eu-central-1
+          output-credentials: true
+      - name: Set up aws credentials for root user
+        run: |
+          sudo aws configure set aws_access_key_id ${{ steps.aws.outputs.aws-access-key-id }}
+          sudo aws configure set aws_secret_access_key ${{ steps.aws.outputs.aws-secret-access-key }}
+          sudo aws configure set aws_session_token ${{ steps.aws.outputs.aws-session-token }}
+          sudo aws configure set region eu-central-1
       - run: nix store ping --store "${{ vars.CACHE_BUCKET }}"
       - id: build
         run: |
