@@ -15,6 +15,7 @@
           tflint
           actionlint
           shellcheck
+          gh
         ];
         shellHook = self.checks.${system}.pre-commit-check.shellHook;
       };

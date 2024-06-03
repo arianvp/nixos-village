@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.41.0"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
   }
 
   backend "s3" {
@@ -17,4 +21,8 @@ terraform {
 
 provider "aws" {
   region = "eu-central-1"
+}
+
+provider "github" {
+  owner = "arianvp"
 }

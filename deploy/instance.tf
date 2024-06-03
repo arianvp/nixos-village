@@ -134,3 +134,9 @@ resource "aws_iam_role" "deploy" {
     aws_iam_policy.deploy.arn,
   ]
 }
+
+resource "github_actions_variable" "deploy_role" {
+  repository    = "nixos-village"
+  variable_name = "DEPLOY_ROLE_ARN"
+  value         = aws_iam_role.deploy.arn
+}
