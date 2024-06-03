@@ -40,7 +40,10 @@ jobs:
           nix copy --to "${{ vars.CACHE_BUCKET }}" ${{ steps.build.outputs.out_path }}
       - id: deploy
         run: |
-          aws ssm run-command --document-name NixOS-deploy --targets 'Key=tag:Name,Values=web-push' --parameters "installable=${{ steps.copy.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},publicKeys=${{ vars.CACHE_PUBLIC_KEY }}"
+          aws ssm send-command \
+            --document-name NixOS-deploy \
+            --targets 'Key=tag:Name,Values=web-push' \
+            --parameters "installable=${{ steps.build.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},publicKeys=${{ vars.CACHE_PUBLIC_KEY }}"
       - id: wait-for-deploy
         run: |
           echo "TODO: Implement"
