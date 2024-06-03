@@ -26,18 +26,10 @@ jobs:
       - run: nix store ping --store "${{ vars.CACHE_BUCKET }}"
       - id: build
         run: |
-          nix build .#nixosConfigurations.web-push.config.system.build.toplevel --extra-substituters '${{ vars.CACHE_BUCKET }}' --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}'
-          out_path=$(readlink ./result)
+          echo "${{ secrets.CACHE_SECRET_KEY }}" > cache-secret-key
+          nix copy --to "${{ vars.CACHE_BUCKET }}&secret-key=./cache-secret-key" .#nixosConfigurations.web-push.config.system.build.toplevel --extra-substituters '${{ vars.CACHE_BUCKET }}' --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}'
+          out_path=$(nix path-info .#nixosConfigurations.web-push.config.system.build.toplevel)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
-      - id: sign
-        run: |
-          echo "$CACHE_SECRET_KEY" > cache-secret-key
-          nix store sign --recursive --key-file cache-secret-key ${{ steps.build.outputs.out_path }}
-        env:
-          CACHE_SECRET_KEY: ${{ secrets.CACHE_SECRET_KEY }}
-      - id: copy
-        run: |
-          nix copy --to "${{ vars.CACHE_BUCKET }}" ${{ steps.build.outputs.out_path }}
       - id: deploy
         run: |
           aws ssm send-command \
