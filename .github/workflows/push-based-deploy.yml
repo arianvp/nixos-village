@@ -37,13 +37,15 @@ jobs:
           nix build \
             --eval-store auto \
             --store "$store" \
+            --builders auto \
             --extra-substituters "https://cache.nixos.org $store" \
             --trusted-public-keys "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${{ vars.CACHE_PUBLIC_KEY }}" \
+            --print-out-paths \
             .#nixosConfigurations.web-push.config.system.build.toplevel
           # if ! nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel; then
           # nix copy --eval-store auto --to "$store" .#nixosConfigurations.web-push.config.system.build.toplevel
           # :fi
-          out_path=$(nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel)
+          # out_path=$(nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
       - id: deploy
         name: Deploy
