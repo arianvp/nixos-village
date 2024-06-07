@@ -32,16 +32,15 @@ jobs:
       - id: build
         name: Build
         run: |
-          set -x
           store="${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
-          nix build \
+          out_path=$(nix build \
             --eval-store auto \
             --store "$store" \
             --builders auto \
             --extra-substituters "https://cache.nixos.org $store" \
             --trusted-public-keys "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${{ vars.CACHE_PUBLIC_KEY }}" \
             --print-out-paths \
-            .#nixosConfigurations.web-push.config.system.build.toplevel
+            .#nixosConfigurations.web-push.config.system.build.toplevel)
           # if ! nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel; then
           # nix copy --eval-store auto --to "$store" .#nixosConfigurations.web-push.config.system.build.toplevel
           # :fi
