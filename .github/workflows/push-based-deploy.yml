@@ -32,11 +32,12 @@ jobs:
       - id: build
         name: Build
         run: |
+          set -x
           store="${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
           # check if the build is already in the cache
           if ! nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel; then
             echo "Building..."
-            nix copy --builders auto --eval-store auto --to "$store" .#nixosConfigurations.web-push.config.system.build.toplevel
+            nix copy --eval-store auto --to "$store" .#nixosConfigurations.web-push.config.system.build.toplevel
           fi
           out_path=$(nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
