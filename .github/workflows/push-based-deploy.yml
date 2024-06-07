@@ -35,8 +35,8 @@ jobs:
           nix flake archive
           nix flake archive --store "${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
           nix build \
-            --extra-substituters '${{ vars.CACHE_BUCKET }}' \
-            --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}' \
+            --extra-substituters 'https://cache.nixos.org ${{ vars.CACHE_BUCKET }}' \
+            --extra-trusted-public-keys 'cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${{ vars.CACHE_PUBLIC_KEY }} ' \
             --store "${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)" \
             --builders-use-substitutes \
             --builders 'auto' \
