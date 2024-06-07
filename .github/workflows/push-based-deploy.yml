@@ -32,6 +32,8 @@ jobs:
       - id: build
         name: Build
         run: |
+          nix flake archive
+          nix flake archive --store "${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
           nix build \
             --extra-substituters '${{ vars.CACHE_BUCKET }}' \
             --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}' \
