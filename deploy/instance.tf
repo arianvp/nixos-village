@@ -103,12 +103,10 @@ data "aws_iam_policy_document" "deploy" {
   statement {
     effect    = "Allow"
     actions   = ["ssm:SendCommand"]
-    resources = [module.ssm_documents.nixos_deploy.arn]
-  }
-  statement {
-    effect    = "Allow"
-    actions   = ["ssm:SendCommand"]
-    resources = ["arn:aws:ec2:*:*:instance/*"]
+    resources = [
+      module.ssm_documents.nixos_deploy.arn,
+      "arn:aws:ec2:*:*:instance/*"
+    ]
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
