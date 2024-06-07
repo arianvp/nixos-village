@@ -44,7 +44,7 @@ jobs:
         run: |
           aws ssm send-command \
             --document-name ${{ vars.SSM_DOCUMENT_NAME }} \
-            --targets 'Key=tag:Name,Values=web-push' \
+            --targets 'Key=tag:Environment,Values=production' \
             --parameters "installable=${{ steps.build.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},trustedPublicKeys=${{ vars.CACHE_PUBLIC_KEY }}"
       - id: wait-for-deploy
         name: Wait for deploy
