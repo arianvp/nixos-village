@@ -80,14 +80,14 @@ resource "aws_ssm_association" "web" {
 
 
 resource "aws_instance" "web_push" {
-  count                = 2
+  count                = 1
   ami                  = data.aws_ami.nixos_x86_64.id
   instance_type        = "t3.micro"
   key_name             = aws_key_pair.utm.key_name
   iam_instance_profile = module.instance_profile_web.name
   tags = {
-    Name        = "web-push"
-    Environment = "production"
+    Name    = "web-push"
+    Finance = "definitely-not-WebServer"
   }
   root_block_device {
     volume_size = 20
@@ -99,25 +99,40 @@ data "aws_iam_openid_connect_provider" "github_actions" {
 }
 
 
-data "aws_iam_policy_document" "deploy" {
-  statement {
-    effect    = "Allow"
-    actions   = ["ssm:SendCommand"]
-    resources = [
-      module.ssm_documents.nixos_deploy.arn,
-      "arn:aws:ec2:*:*:instance/*"
-    ]
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:arianvp/nixos-village:environment:$${ssm:resourceTag/Environment}"]
-    }
-  }
-}
-
 resource "aws_iam_policy" "deploy" {
-  name   = "deploy"
-  policy = data.aws_iam_policy_document.deploy.json
+  name = "deploy"
+  policy = jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "ssm:SendCommand"
+          ],
+          "Resource" : [
+            "arn:aws:ssm:*:*:document/*"
+          ]
+        },
+        {
+          "Effect" : "Allow",
+          "Action" : [
+            "ssm:SendCommand"
+          ],
+          "Resource" : [
+            "arn:aws:ec2:*:*:instance/*"
+          ],
+          "Condition" : {
+            "StringLike" : {
+              "ssm:resourceTag/Finance" : [
+                "WebServer"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  )
 }
 
 
@@ -170,4 +185,10 @@ resource "github_actions_variable" "ssm_document_name" {
   repository    = "nixos-village"
   variable_name = "SSM_DOCUMENT_NAME"
   value         = module.ssm_documents.nixos_deploy.name
+}
+
+
+resource "github_repository_environment" "production" {
+  repository  = "nixos-village"
+  environment = "production"
 }
