@@ -50,7 +50,7 @@ module "ssm_documents" {
 }
 
 resource "aws_instance" "web" {
-  count                = 2
+  count                = 0
   ami                  = data.aws_ami.nixos.id
   instance_type        = "t4g.xlarge"
   key_name             = aws_key_pair.utm.key_name
@@ -86,8 +86,8 @@ resource "aws_instance" "web_push" {
   key_name             = aws_key_pair.utm.key_name
   iam_instance_profile = module.instance_profile_web.name
   tags = {
-    Name          = "web-push"
-    GithubSubject = "repo:arianvp/nixos-village"
+    Name        = "web-push"
+    Environment = "production"
   }
   root_block_device {
     volume_size = 20
@@ -98,22 +98,6 @@ data "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
 }
 
-data "aws_iam_policy_document" "assume_deploy" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-    effect  = "Allow"
-
-    principals {
-      type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.github_actions.arn]
-    }
-    condition {
-      test     = "StringLike"
-      variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:arianvp/nixos-village:*"]
-    }
-  }
-}
 
 data "aws_iam_policy_document" "deploy" {
   statement {
@@ -127,8 +111,8 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["arn:aws:ec2:*:*:instance/*"]
     condition {
       test     = "StringEquals"
-      variable = "ssm:resourceTag/Name"
-      values   = ["web-push"]
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:arianvp/nixos-village:environment:$${ssm:resourceTag/Environment}"]
     }
   }
 }
@@ -136,6 +120,35 @@ data "aws_iam_policy_document" "deploy" {
 resource "aws_iam_policy" "deploy" {
   name   = "deploy"
   policy = data.aws_iam_policy_document.deploy.json
+}
+
+
+data "aws_iam_roles" "admin" {
+  name_regex = "AWSReservedSSO_AdministratorAccess_*"
+}
+
+data "aws_iam_policy_document" "assume_deploy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = data.aws_iam_roles.admin.arns
+    }
+  }
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+    principals {
+      type        = "Federated"
+      identifiers = [data.aws_iam_openid_connect_provider.github_actions.arn]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:arianvp/nixos-village:*"]
+    }
+  }
 }
 
 resource "aws_iam_role" "deploy" {
@@ -147,6 +160,7 @@ resource "aws_iam_role" "deploy" {
     aws_iam_policy.deploy.arn,
   ]
 }
+
 
 resource "github_actions_variable" "deploy_role" {
   repository    = "nixos-village"
