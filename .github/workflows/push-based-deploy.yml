@@ -33,7 +33,7 @@ jobs:
         name: Build
         run: |
           store="${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
-          nix archive --store "$store"
+          nix flake archive --store "$store"
           # check if the build is already in the cache
           if ! nix path-info --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel; then
             # if not; copy the build to the cache
