@@ -32,16 +32,13 @@ jobs:
       - id: build
         name: Build
         run: |
-          nix flake archive
-          nix flake archive --store "${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
-          nix build \
-            --extra-substituters 'https://cache.nixos.org ${{ vars.CACHE_BUCKET }}' \
-            --extra-trusted-public-keys 'cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${{ vars.CACHE_PUBLIC_KEY }} ' \
-            --store "${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)" \
-            --builders-use-substitutes \
-            --builders 'auto' \
-            .#nixosConfigurations.web-push.config.system.build.toplevel 
-          out_path=$(readlink ./result)
+          store="${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
+          # check if the build is already in the cache
+          if ! nix path-info --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel; then
+            # if not; copy the build to the cache
+            nix copy --to "$store" .#nixosConfigurations.web-push.config.system.build.toplevel
+          fi
+          out_path=$(nix path-info --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
       - id: deploy
         name: Deploy
