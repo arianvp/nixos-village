@@ -36,6 +36,7 @@ jobs:
             --extra-substituters '${{ vars.CACHE_BUCKET }}' \
             --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}' \
             --store "${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)" \
+            --builders-use-substitutes true \
             --builders 'auto' \
             .#nixosConfigurations.web-push.config.system.build.toplevel 
           out_path=$(readlink ./result)
