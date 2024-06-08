@@ -54,7 +54,7 @@ jobs:
       - id: wait-for-deploy
         name: Wait for deploy
         run: |
-          tries=120
+          tries=5
           while true; do
             if [ $tries -eq 0 ]; then
               echo "Command did not finish in time"
