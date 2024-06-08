@@ -53,6 +53,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-amazon-ssm-agent": {
+      "locked": {
+        "lastModified": 1717103298,
+        "narHash": "sha256-53QT7BSlhL3xNrKzkyzB8pjm/ZCdmpU1D06zhLrNg5s=",
+        "owner": "r-ryantm",
+        "repo": "nixpkgs",
+        "rev": "a6a98862d0da89cc812fc4d0d8e5182c3671e4de",
+        "type": "github"
+      },
+      "original": {
+        "owner": "r-ryantm",
+        "ref": "auto-update/amazon-ssm-agent",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs-stable": {
       "locked": {
         "lastModified": 1710695816,
@@ -109,6 +125,7 @@
     "root": {
       "inputs": {
         "nixpkgs": "nixpkgs",
+        "nixpkgs-amazon-ssm-agent": "nixpkgs-amazon-ssm-agent",
         "pre-commit-hooks": "pre-commit-hooks"
       }
     }

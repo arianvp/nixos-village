@@ -80,7 +80,7 @@ data "aws_iam_policy_document" "write_ssm_logs" {
       "s3:GetObject",
       "s3:PutObjectAcl"
     ]
-    resources = ["arn:aws:s3:::${aws_s3_bucket.ssm_logs.bucket}/*"]
+    resources = ["${aws_s3_bucket.ssm_logs.arn}/*"]
   }
 }
 

@@ -1,4 +1,7 @@
-{
+{inputs, config, ...}: {
+  services.amazon-ssm-agent.package = inputs.nixpkgs-amazon-ssm-agent.legacyPackages.${config.nixpkgs.hostPlatform.system}.amazon-ssm-agent.override {
+    overrideEtc = false;
+  };
   services.fluent-bit = {
     settings = {
       pipeline.filters = [{
