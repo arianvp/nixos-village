@@ -13,3 +13,4 @@ region = eu-central-1
 [profile deploy]
 source_profile = default
 role_arn = arn:aws:iam::686862074153:role/deploy
+region = eu-central-1

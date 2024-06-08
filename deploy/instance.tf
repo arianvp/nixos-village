@@ -63,11 +63,16 @@ resource "aws_instance" "web" {
   }
 }
 
+variable "installable" {
+  type    = string
+  default = "github:arianvp/nixos-village#nixosConfigurations.web.config.system.build.toplevel"
+}
+
 resource "aws_ssm_association" "web" {
   association_name = "web-deploy"
   name             = module.ssm_documents.nixos_deploy.name
   parameters = {
-    installable = "github:arianvp/nixos-village#nixosConfigurations.web.config.system.build.toplevel"
+    installable = var.installable
     action      = "switch"
   }
   targets {
@@ -79,7 +84,7 @@ resource "aws_ssm_association" "web" {
 
 
 resource "aws_instance" "web_push" {
-  count                = 0
+  count                = 1
   ami                  = data.aws_ami.nixos_x86_64.id
   instance_type        = "t3.micro"
   iam_instance_profile = module.instance_profile_web.name
@@ -90,7 +95,6 @@ resource "aws_instance" "web_push" {
     volume_size = 20
   }
 }
-
 
 data "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
@@ -117,7 +121,6 @@ resource "aws_iam_policy" "deploy" {
   name   = "deploy"
   policy = data.aws_iam_policy_document.deploy.json
 }
-
 
 data "aws_iam_roles" "admin" {
   name_regex = "AWSReservedSSO_AdministratorAccess_*"
@@ -168,7 +171,6 @@ resource "github_actions_variable" "ssm_document_name" {
   variable_name = "SSM_DOCUMENT_NAME"
   value         = module.ssm_documents.nixos_deploy.name
 }
-
 
 resource "github_repository_environment" "production" {
   repository  = "nixos-village"
