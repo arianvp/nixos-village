@@ -54,7 +54,6 @@ jobs:
       - id: wait-for-deploy
         name: Wait for deploy
         run: |
-          set -x
           tries=5
           while true; do
             if [ $tries -eq 0 ]; then
@@ -63,7 +62,8 @@ jobs:
             fi
             status=$(aws ssm list-commands \
                 --command-id ${{ steps.send-command.outputs.command_id }} \
-                --query "Commands[0].Status")
+                --query "Commands[0].Status" \
+                --output text)
             
             # if pending or in progress, or cancelling
             if [ "$status" = "Pending" ] || [ "$status" = "InProgress" ] || [ "$status" = "Cancelling" ]; then
