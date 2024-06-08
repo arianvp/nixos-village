@@ -8,10 +8,6 @@
     lib.supportedSystems = [ "aarch64-darwin" "aarch64-linux" "x86_64-linux" ];
     lib.forAllSystems = nixpkgs.lib.genAttrs self.lib.supportedSystems;
 
-    packages = self.lib.forAllSystems (system: {
-      aws-codedeploy-agent = nixpkgs.legacyPackages.${system}.callPackage ./nix/packages/aws-codedeploy-agent.nix { };
-    });
-
     devShells = self.lib.forAllSystems (system: {
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
