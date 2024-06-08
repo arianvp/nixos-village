@@ -38,7 +38,7 @@
 
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
       modules = [
-        # { nixpkgs.hostPlatform = "aarch64-linux"; }
+        { nixpkgs.hostPlatform = "aarch64-linux"; }
         self.nixosModules.flakeInputs
         ./nix/configs/web.nix
       ];
@@ -46,7 +46,7 @@
 
     nixosConfigurations.web-push = nixpkgs.lib.nixosSystem {
       modules = [
-        # { nixpkgs.hostPlatform = "x86_64-linux"; }
+        { nixpkgs.hostPlatform = "x86_64-linux"; }
         self.nixosModules.flakeInputs
         ./nix/configs/web.nix
       ];

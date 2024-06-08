@@ -6,7 +6,6 @@
     ../mixins/aws.nix
   ];
 
-  nixpkgs.hostPlatform = "aarch64-linux";
 
   services.getty.autologinUser = "root";
 
