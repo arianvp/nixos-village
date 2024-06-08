@@ -78,61 +78,44 @@ resource "aws_ssm_association" "web" {
 }
 
 
-
 resource "aws_instance" "web_push" {
-  count                = 1
+  count                = 0
   ami                  = data.aws_ami.nixos_x86_64.id
   instance_type        = "t3.micro"
-  key_name             = aws_key_pair.utm.key_name
   iam_instance_profile = module.instance_profile_web.name
   tags = {
-    Name    = "web-push"
-    Finance = "definitely-not-WebServer"
+    Name = "web-push"
   }
   root_block_device {
     volume_size = 20
   }
 }
 
+
 data "aws_iam_openid_connect_provider" "github_actions" {
   url = "https://token.actions.githubusercontent.com"
 }
 
-
-resource "aws_iam_policy" "deploy" {
-  name = "deploy"
-  policy = jsonencode(
-    {
-      "Version" : "2012-10-17",
-      "Statement" : [
-        {
-          "Effect" : "Allow",
-          "Action" : [
-            "ssm:SendCommand"
-          ],
-          "Resource" : [
-            "arn:aws:ssm:*:*:document/*"
-          ]
-        },
-        {
-          "Effect" : "Allow",
-          "Action" : [
-            "ssm:SendCommand"
-          ],
-          "Resource" : [
-            "arn:aws:ec2:*:*:instance/*"
-          ],
-          "Condition" : {
-            "StringLike" : {
-              "ssm:resourceTag/Finance" : [
-                "WebServer"
-              ]
-            }
-          }
-        }
-      ]
+data "aws_iam_policy_document" "deploy" {
+  statement {
+    actions   = ["ssm:SendCommand"]
+    effect    = "Allow"
+    resources = [module.ssm_documents.nixos_deploy.arn]
+  }
+  statement {
+    actions   = ["ssm:SendCommand"]
+    effect    = "Allow"
+    resources = ["arn:aws:ec2:*:*:instance/*"]
+    condition {
+      test     = "StringLike"
+      variable = "ssm:resourceTag/Finance"
+      values   = ["WebServer"]
     }
-  )
+  }
+}
+resource "aws_iam_policy" "deploy" {
+  name   = "deploy"
+  policy = data.aws_iam_policy_document.deploy.json
 }
 
 
@@ -173,7 +156,6 @@ resource "aws_iam_role" "deploy" {
     aws_iam_policy.deploy.arn,
   ]
 }
-
 
 resource "github_actions_variable" "deploy_role" {
   repository    = "nixos-village"
