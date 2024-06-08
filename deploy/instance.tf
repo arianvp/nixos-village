@@ -127,13 +127,18 @@ data "aws_iam_openid_connect_provider" "github_actions" {
 
 data "aws_iam_policy_document" "deploy" {
   statement {
-    actions   = ["ssm:SendCommand"]
     effect    = "Allow"
+    actions   = ["ssm:SendCommand"]
     resources = [module.ssm_documents.nixos_deploy.arn]
   }
   statement {
-    actions   = ["ssm:SendCommand"]
+    effect = "Allow"
+    actions = ["ssm:ListCommands", "ssm:ListCommandInvocations"]
+    resources = ["*"] 
+  }
+  statement {
     effect    = "Allow"
+    actions   = ["ssm:SendCommand"]
     resources = ["arn:aws:ec2:*:*:instance/*"]
     condition {
       test     = "StringLike"
