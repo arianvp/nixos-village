@@ -137,8 +137,8 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["arn:aws:ec2:*:*:instance/*"]
     condition {
       test     = "StringLike"
-      variable = "ssm:resourceTag/Finance"
-      values   = ["WebServer"]
+      variable = "ssm:resourceTag/Name"
+      values   = ["web-push"]
     }
   }
 }
