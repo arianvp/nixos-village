@@ -63,14 +63,14 @@ jobs:
             status=$(aws ssm list-commands \
                 --command-id ${{ steps.send-command.outputs.command_id }} \
                 --query "Commands[0].Status")
+           
+            # if pending or in progress, or cancelling
             if [ "$status" = "Pending" ] || [ "$status" = "InProgress" ] || [ "$status" = "Cancelling" ]; then
-              tries=$((tries - 1))
-              echo "Sleeping for 30 seconds to wait for command to finish"
-              sleep 30
+              tries=$((tries-1))
+              sleep 60
               continue
-            else
-              break
             fi
+            break
           done
           echo "status=$status" >> "$GITHUB_OUTPUT"
       - name: Show details
