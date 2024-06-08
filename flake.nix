@@ -1,11 +1,13 @@
 {
   description = "NixOS Village AWS cloud";
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
+  inputs.nixpkgs-amazon-ssm-agent.url = "github:r-ryantm/nixpkgs?ref=auto-update/amazon-ssm-agent";
   inputs.pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
 
-  outputs = { self, nixpkgs, pre-commit-hooks }: {
-    lib.supportedSystems = ["aarch64-darwin" "aarch64-linux" "x86_64-linux" ];
+  outputs = inputs@{ self, nixpkgs, pre-commit-hooks, ... }: {
+    lib.supportedSystems = [ "aarch64-darwin" "aarch64-linux" "x86_64-linux" ];
     lib.forAllSystems = nixpkgs.lib.genAttrs self.lib.supportedSystems;
+
     devShells = self.lib.forAllSystems (system: {
       default = with nixpkgs.legacyPackages.${system}; mkShell {
         packages = [
@@ -21,21 +23,29 @@
       };
     });
 
-
     hydraJobs = {
       web = self.nixosConfigurations.web.config.system.build.toplevel;
     };
 
     nixosModules.fluent-bit = ./nix/modules/fluent-bit.nix;
+    nixosModules.flakeInputs = {
+      _module.args.inputs = inputs;
+    };
 
     nixosConfigurations.web = nixpkgs.lib.nixosSystem {
-      system = "aarch64-linux";
-      modules = [ ./nix/configs/web.nix ];
+      modules = [
+        { nixpkgs.hostPlatform = "aarch64-linux"; }
+        self.nixosModules.flakeInputs
+        ./nix/configs/web.nix
+      ];
     };
 
     nixosConfigurations.web-push = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [ ./nix/configs/web.nix ];
+      modules = [
+        { nixpkgs.hostPlatform = "x86_64-linux"; }
+        self.nixosModules.flakeInputs
+        ./nix/configs/web.nix
+      ];
     };
 
     checks = self.lib.forAllSystems (system: {

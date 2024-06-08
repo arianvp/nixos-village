@@ -19,6 +19,7 @@
   };
 
   systemd.services.web = {
+    enable = false;
     description = "Web server";
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
