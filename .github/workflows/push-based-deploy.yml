@@ -54,8 +54,9 @@ jobs:
       - id: wait-for-deploy
         name: Wait for deploy
         run: |
-          tries=5
+          tries=10
           while true; do
+            sleep 10
             if [ $tries -eq 0 ]; then
               echo "Command did not finish in time"
               exit 0
@@ -68,7 +69,6 @@ jobs:
             # if pending or in progress, or cancelling
             if [ "$status" = "Pending" ] || [ "$status" = "InProgress" ] || [ "$status" = "Cancelling" ]; then
               tries=$((tries-1))
-              sleep 60
               continue
             fi
             break
