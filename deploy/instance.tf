@@ -41,7 +41,8 @@ module "instance_profile_web" {
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
     "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
-    aws_iam_policy.read_cache.arn
+    aws_iam_policy.read_cache.arn,
+    aws_iam_policy.write_cache.arn,
   ]
 }
 
@@ -50,7 +51,7 @@ module "ssm_documents" {
 }
 
 resource "aws_instance" "web" {
-  count                = 0
+  count                = 2
   ami                  = data.aws_ami.nixos.id
   instance_type        = "t4g.xlarge"
   key_name             = aws_key_pair.utm.key_name
@@ -68,8 +69,28 @@ variable "installable" {
   default = "github:arianvp/nixos-village#nixosConfigurations.web.config.system.build.toplevel"
 }
 
+resource "aws_s3_bucket" "ssm_logs" {
+  bucket_prefix = "ssm-logs"
+}
+
+data "aws_iam_policy_document" "write_ssm_logs" {
+  statement {
+    actions = [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:PutObjectAcl"
+    ]
+    resources = ["arn:aws:s3:::${aws_s3_bucket.ssm_logs.bucket}/*"]
+  }
+}
+
+resource "aws_iam_policy" "write_ssm_logs" {
+  name   = "write-ssm-logs"
+  policy = data.aws_iam_policy_document.write_ssm_logs.json
+}
+
 resource "aws_ssm_association" "web" {
-  association_name = "web-deploy"
+  association_name = "web"
   name             = module.ssm_documents.nixos_deploy.name
   parameters = {
     installable = var.installable
@@ -80,8 +101,12 @@ resource "aws_ssm_association" "web" {
     values = ["web"]
   }
   schedule_expression = "rate(30 minutes)"
-}
 
+  output_location {
+    s3_bucket_name = aws_s3_bucket.ssm_logs.bucket
+    s3_key_prefix  = "web"
+  }
+}
 
 resource "aws_instance" "web_push" {
   count                = 1
