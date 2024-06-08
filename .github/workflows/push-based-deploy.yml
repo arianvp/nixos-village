@@ -1,4 +1,3 @@
-
 on:
   push:
     branches: [main]
@@ -7,7 +6,6 @@ jobs:
   build-and-deploy:
     name: Build and deploy
     runs-on: ubuntu-latest
-    environment: production
     permissions:
       contents: read
       id-token: write
@@ -27,27 +25,54 @@ jobs:
           sudo aws configure set aws_secret_access_key ${{ steps.aws.outputs.aws-secret-access-key }}
           sudo aws configure set aws_session_token ${{ steps.aws.outputs.aws-session-token }}
           sudo aws configure set region eu-central-1
-      - id: get-cache-secret-key
-        name: Get cache secret key
-        run: echo "${{ secrets.CACHE_SECRET_KEY }}" > cache-secret-key
       - id: build
         name: Build
         run: |
-          store="${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
-          if ! nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel; then
-            nix copy --eval-store auto --to "$store" .#nixosConfigurations.web-push.config.system.build.toplevel
-          fi
-          out_path=$(nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel)
+          nix build .#nixosConfigurations.web-push.config.system.build.toplevel --extra-substituters '${{ vars.CACHE_BUCKET }}' --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}'
+          out_path=$(readlink ./result)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
-      - id: deploy
-        name: Deploy
+      - id: send-command
+        name: Send command ${{ vars.SSM_DOCUMENT_NAME }}
         run: |
-          aws ssm send-command \
+          command_id=$(aws ssm send-command \
             --document-name ${{ vars.SSM_DOCUMENT_NAME }} \
             --targets 'Key=tag:Name,Values=web-push' \
-            --parameters "installable=${{ steps.build.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},trustedPublicKeys=${{ vars.CACHE_PUBLIC_KEY }}"
+            --parameters "installable=${{ steps.build.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},trustedPublicKeys=${{ vars.CACHE_PUBLIC_KEY }}" \
+            --query "Command.CommandId" \
+            --output text)
+          echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
       - id: wait-for-deploy
         name: Wait for deploy
         run: |
-          echo "TODO: Implement"
-          echo "Deployed successfully"
+          tries=120
+          while true; do
+            if [ $tries -eq 0 ]; then
+              echo "Command did not finish in time"
+              exit 0
+            fi
+            status=$(aws ssm list-commands \
+                --command-id ${{ steps.send-command.outputs.command_id }} \
+                --query "Commands[0].Status")
+            if [ "$status" = "Pending" ] || [ "$status" = "InProgress" ] || [ "$status" = "Cancelling" ]; then
+              tries=$((tries - 1))
+              echo "Sleeping for 30 seconds to wait for command to finish"
+              sleep 30
+              continue
+            else
+              break
+            fi
+          done
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Show details
+        run: |
+          aws ssm list-command-invocations \
+            --command-id ${{ steps.send-command.outputs.command_id }} \
+            --details \
+            --output yaml
+      - name: Fail if status is not Success
+        run: |
+
+          if [ "${{ steps.wait-for-deploy.outputs.status }}" != "Success" ]; then
+            echo "Command failed with status $status"
+            exit 1
+          fi
