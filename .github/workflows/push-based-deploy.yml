@@ -45,6 +45,9 @@ jobs:
             --document-name ${{ vars.SSM_DOCUMENT_NAME }} \
             --targets 'Key=tag:Name,Values=web-push' \
             --parameters "installable=${{ steps.build.outputs.out_path }},substituters=${{ vars.CACHE_BUCKET }},trustedPublicKeys=${{ vars.CACHE_PUBLIC_KEY }}" \
+            --output-s3-bucket-name "${{ vars.SSM_LOGS_BUCKET }}" \
+            --output-s3-key-prefix "${{ vars.SSM_DOCUMENT_NAME }}" \
+            --cloud-watch-output-config CloudWatchOutputEnabled=true \
             --query "Command.CommandId" \
             --output text)
           echo "command_id=$command_id" >> "$GITHUB_OUTPUT"

@@ -202,7 +202,14 @@ resource "github_actions_variable" "ssm_document_name" {
   value         = module.ssm_documents.nixos_deploy.name
 }
 
+resource "github_actions_variable" "ssm_logs_bucket" {
+  repository    = "nixos-village"
+  variable_name = "SSM_LOGS_BUCKET"
+  value         = aws_s3_bucket.ssm_logs.bucket
+}
+
 resource "github_repository_environment" "production" {
   repository  = "nixos-village"
   environment = "production"
 }
+
