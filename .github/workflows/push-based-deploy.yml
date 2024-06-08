@@ -6,6 +6,7 @@ jobs:
   build-and-deploy:
     name: Build and deploy
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
       id-token: write
@@ -25,11 +26,17 @@ jobs:
           sudo aws configure set aws_secret_access_key ${{ steps.aws.outputs.aws-secret-access-key }}
           sudo aws configure set aws_session_token ${{ steps.aws.outputs.aws-session-token }}
           sudo aws configure set region eu-central-1
+      - id: get-cache-secret-key
+        name: Get cache secret key
+        run: echo "${{ secrets.CACHE_SECRET_KEY }}" > cache-secret-key
       - id: build
         name: Build
         run: |
-          nix build .#nixosConfigurations.web-push.config.system.build.toplevel --extra-substituters '${{ vars.CACHE_BUCKET }}' --extra-trusted-public-keys '${{ vars.CACHE_PUBLIC_KEY }}'
-          out_path=$(readlink ./result)
+          store="${{ vars.CACHE_BUCKET }}&secret-key=$(realpath ./cache-secret-key)"
+          if ! nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel; then
+            nix copy --eval-store auto --to "$store" .#nixosConfigurations.web-push.config.system.build.toplevel
+          fi
+          out_path=$(nix path-info --eval-store auto --store "$store" .#nixosConfigurations.web-push.config.system.build.toplevel)
           echo "out_path=$out_path" >> "$GITHUB_OUTPUT"
       - id: send-command
         name: Send command ${{ vars.SSM_DOCUMENT_NAME }}
