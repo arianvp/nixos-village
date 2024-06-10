@@ -43,6 +43,7 @@ module "instance_profile_web" {
     "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy",
     aws_iam_policy.read_cache.arn,
     aws_iam_policy.write_cache.arn,
+    aws_iam_policy.write_ssm_logs.arn,
   ]
 }
 
