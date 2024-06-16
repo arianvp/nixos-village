@@ -51,14 +51,14 @@ resource "aws_ssm_document" "nixos_deploy" {
 
       }
       substituters = {
-        type        = "StringList"
+        type        = "String"
         description = "The substituters to use."
-        default     = []
+        default     = ""
       }
       trustedPublicKeys = {
-        type        = "StringList"
+        type        = "String"
         description = "The key with which to verify the substituters."
-        default     = []
+        default     = ""
       }
     }
     mainSteps = [
