@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e
-set -x
 
 action='{{ action }}'
 installable='{{ installable }}'
@@ -8,26 +7,26 @@ profile='{{ profile }}'
 substituters='{{ substituters }}'
 trustedPublicKeys='{{ trustedPublicKeys }}'
 
-nixStorePath=$(/run/current-system/sw/bin/nix build \
+/run/current-system/sw/bin/nix build \
   --extra-experimental-features 'nix-command flakes' \
   --extra-trusted-public-keys "$trustedPublicKeys" \
   --extra-substituters "$substituters" \
-  --print-out-paths \
   --refresh \
-  "$installable")
+  --profile "$profile" \
+  "$installable"
 
-if [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$(/run/current-system/sw/bin/readlink ./result)" ]; then
+if [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$(/run/current-system/sw/bin/readlink "$profile")" ]; then
   echo "Already booted into the desired configuration"
   exit 0
 fi
 
+if [ "$action" == "reboot" ]; then
+  action="boot"
+  do_reboot=1
+fi
 
-/run/wrappers/bin/sudo /run/current-system/sw/bin/nix-env --profile "$profile" --set "$nixStorePath"
+/run/wrappers/bin/sudo "$profile/bin/switch-to-configuration" "$action"
 
-if [ "$action" == "switch" ]; then
-  /run/wrappers/bin/sudo /nix/var/nix/profiles/system/bin/switch-to-configuration switch
-elif [ "$action" == "reboot" ]; then
-  /run/wrappers/bin/sudo /nix/var/nix/profiles/system/bin/switch-to-configuration boot
-  #  Signals SSM to reboot the instance https://docs.aws.amazon.com/systems-manager/latest/userguide/send-commands-reboot.html
+if [ "$do_reboot" == 1 ]; then
   exit 194
 fi

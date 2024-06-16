@@ -31,7 +31,7 @@ resource "aws_ssm_document" "nixos_deploy" {
       action = {
         type          = "String"
         description   = "Whether to switch or reboot to deploy."
-        allowedValues = ["switch", "reboot"]
+        allowedValues = ["switch", "test", "boot", "reboot", "dry-activate"]
         default       = "switch"
       }
       profile = {
