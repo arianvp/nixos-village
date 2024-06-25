@@ -18,6 +18,7 @@
           actionlint
           shellcheck
           gh
+          pulumi
         ];
         shellHook = self.checks.${system}.pre-commit-check.shellHook;
       };
