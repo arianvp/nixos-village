@@ -10,7 +10,7 @@
   };
 
   outputs = inputs@{ self, nixpkgs, pre-commit-hooks, nix-github-actions, ... }: {
-    lib.supportedSystems = [ "aarch64-darwin" "aarch64-linux" "x86_64-linux" ];
+    lib.supportedSystems = [ "aarch64-linux" "x86_64-linux" ];
     lib.forAllSystems = nixpkgs.lib.genAttrs self.lib.supportedSystems;
 
     githubActions = nix-github-actions.lib.mkGithubMatrix {
