@@ -17,14 +17,14 @@
       inherit (self) checks;
       platforms = {
         x86_64-linux = [
-            "nscloud-ubuntu-22.04-amd64-4x16-with-cache"
-            "nscloud-cache-size-20gb"
-            "nscloud-cache-tag-amd64-linux"
+          "nscloud-ubuntu-22.04-amd64-4x16-with-cache"
+          "nscloud-cache-size-20gb"
+          "nscloud-cache-tag-amd64-linux"
         ];
         aarch64-linux = [
-            "nscloud-ubuntu-22.04-arm64-4x16-with-cache"
-            "nscloud-cache-size-20gb"
-            "nscloud-cache-tag-arm64-linux"
+          "nscloud-ubuntu-22.04-arm64-4x16-with-cache"
+          "nscloud-cache-size-20gb"
+          "nscloud-cache-tag-arm64-linux"
         ];
       };
     };
@@ -70,16 +70,28 @@
       ];
     };
 
-    checks = self.lib.forAllSystems (system: {
-      pre-commit-check = pre-commit-hooks.lib.${system}.run {
-        src = ./.;
-        hooks = {
-          actionlint.enable = true;
-          tflint.enable = true;
-          shellcheck.enable = true;
+    checks = self.lib.forAllSystems (system:
+
+      let
+        lib = nixpkgs.lib;
+        nixosMachines = lib.mapAttrs'
+          (
+            name: config: lib.nameValuePair "nixos-${name}" config.config.system.build.toplevel
+          )
+          ((lib.filterAttrs (_: config: config.pkgs.system == system)) self.nixosConfigurations);
+
+      in
+      nixosMachines //
+      {
+        pre-commit-check = pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            actionlint.enable = true;
+            tflint.enable = true;
+            shellcheck.enable = true;
+          };
         };
-      };
-    });
+      });
 
   };
 }
