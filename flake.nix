@@ -19,12 +19,12 @@
         x86_64-linux = [
             "nscloud-ubuntu-22.04-amd64-4x16-with-cache"
             "nscloud-cache-size-20gb"
-            "nscloud-cache-tag-aarch64-linux"
+            "nscloud-cache-tag-amd64-linux"
         ];
         aarch64-linux = [
             "nscloud-ubuntu-22.04-arm64-4x16-with-cache"
             "nscloud-cache-size-20gb"
-            "nscloud-cache-tag-x86_64-linux"
+            "nscloud-cache-tag-arm64-linux"
         ];
       };
     };
