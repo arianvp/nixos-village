@@ -24,9 +24,10 @@ jobs:
 
   nix-build:
     needs: nix-matrix
-    runs-on: ${{ matrix.os }}
     strategy:
-      matrix: ${{fromJSON(needs.nix-matrix.outputs.matrix)}}
+      matrix: ${{ fromJSON(needs.nix-matrix.outputs.matrix )}}
+    runs-on: ${{ matrix.os }}
+    name: nix-build ${{ matrix.attr }}
     steps:
       - uses: actions/checkout@v4
       - run: |
