@@ -41,7 +41,7 @@ module "ssm_documents" {
 }
 
 resource "aws_instance" "web" {
-  count                = 2
+  count                = 0
   ami                  = data.aws_ami.nixos.id
   instance_type        = "t4g.micro"
   iam_instance_profile = module.instance_profile_web.name
@@ -98,7 +98,7 @@ resource "aws_ssm_association" "web" {
 }
 
 resource "aws_instance" "web_push" {
-  count                = 1
+  count                = 0
   ami                  = data.aws_ami.nixos_x86_64.id
   instance_type        = "t3.micro"
   iam_instance_profile = module.instance_profile_web.name

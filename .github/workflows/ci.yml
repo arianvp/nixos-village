@@ -4,6 +4,12 @@ on:
       - main
   pull_request:
 jobs:
+  build:
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+    runs-on: ubuntu-latest
   check:
     runs-on: ubuntu-latest
     steps:

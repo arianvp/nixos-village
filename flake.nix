@@ -13,6 +13,7 @@
         packages = [
           opentofu
           awscli2
+          ssm-session-manager-plugin
           nodejs
           tflint
           actionlint
@@ -59,6 +60,5 @@
         };
       };
     });
-
   };
 }
