@@ -18,6 +18,15 @@
         pipeline.filters = [{
           name = "aws";
           match = "*";
+
+          ec2_instance_type = true;
+          private_ip = true;
+          ami_id = true;
+          account_id = true;
+          hostname = true;
+          vpc_id = true;
+          tags_enabled = true;
+
           # Workaround for https://github.com/fluent/fluent-bit/issues/6918
           retry_interval_s = "60";
         }];
