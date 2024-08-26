@@ -80,7 +80,10 @@ resource "aws_iam_policy" "write_ssm_logs" {
 
 resource "aws_ssm_association" "web" {
   association_name = "web"
+
   name             = module.ssm_documents.nixos_deploy.name
+  document_version = module.ssm_documents.nixos_deploy.version
+
   parameters = {
     installable = var.installable
     action      = "switch"
@@ -89,11 +92,13 @@ resource "aws_ssm_association" "web" {
     key    = "tag:Name"
     values = ["web"]
   }
-  schedule_expression = "rate(30 minutes)"
-
   output_location {
     s3_bucket_name = aws_s3_bucket.ssm_logs.bucket
     s3_key_prefix  = "web"
+  }
+
+  lifecycle {
+    ignore_changes = [ parameters.installable ]
   }
 }
 
