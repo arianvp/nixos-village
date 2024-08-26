@@ -82,7 +82,7 @@ resource "aws_ssm_association" "web" {
   association_name = "web"
 
   name             = module.ssm_documents.nixos_deploy.name
-  document_version = module.ssm_documents.nixos_deploy.version
+  document_version = module.ssm_documents.nixos_deploy.document_version
 
   parameters = {
     installable = var.installable
