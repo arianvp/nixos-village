@@ -7,7 +7,7 @@ profile='{{ profile }}'
 substituters='{{ substituters }}'
 trustedPublicKeys='{{ trustedPublicKeys }}'
 
-/run/current-system/sw/bin/nix build \
+nix build \
   --extra-experimental-features 'nix-command flakes' \
   --extra-trusted-public-keys "$trustedPublicKeys" \
   --extra-substituters "$substituters" \
@@ -15,7 +15,7 @@ trustedPublicKeys='{{ trustedPublicKeys }}'
   --profile "$profile" \
   "$installable"
 
-if [ "$(/run/current-system/sw/bin/readlink /run/current-system)" == "$(/run/current-system/sw/bin/readlink "$profile")" ]; then
+if [ "$(readlink -f /run/current-system)" == "$(readlink -f "$profile")" ]; then
   echo "Already booted into the desired configuration"
   exit 0
 fi
@@ -25,7 +25,7 @@ if [ "$action" == "reboot" ]; then
   do_reboot=1
 fi
 
-/run/wrappers/bin/sudo "$profile/bin/switch-to-configuration" "$action"
+sudo "$profile/bin/switch-to-configuration" "$action"
 
 if [ "$do_reboot" == 1 ]; then
   exit 194
